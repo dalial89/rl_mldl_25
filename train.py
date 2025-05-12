@@ -3,6 +3,11 @@
 """
 import argparse
 
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')         # backend non-interattivo che non cerca matplotlib_inline
+import matplotlib.pyplot as plt
+
 import torch
 import gym
 
@@ -10,10 +15,11 @@ from env.custom_hopper import *
 from agent import Agent, Policy
 
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--n-episodes', default=100000, type=int, help='Number of training episodes')
-    parser.add_argument('--print-every', default=20000, type=int, help='Print info every <> episodes')
+    parser.add_argument('--n-episodes', default=10000, type=int, help='Number of training episodes')
+    parser.add_argument('--print-every', default=2000, type=int, help='Print info every <> episodes')
     parser.add_argument('--device', default='cpu', type=str, help='network device [cpu, cuda]')
 
     return parser.parse_args()
@@ -40,10 +46,8 @@ def main():
 	policy = Policy(observation_space_dim, action_space_dim)
 	agent = Agent(policy, device=args.device)
 
-    #
-    # TASK 2 and 3: interleave data collection to policy updates
-    #
 
+	episode_rewards = [] #graf1
 	for episode in range(args.n_episodes):
 		done = False
 		train_reward = 0
@@ -60,6 +64,8 @@ def main():
 
 			train_reward += reward
 		
+		agent.update_policy() #update policy qua?
+		episode_rewards.append(train_reward) #graf2
 		if (episode+1)%args.print_every == 0:
 			print('Training episode:', episode)
 			print('Episode return:', train_reward)
@@ -67,6 +73,26 @@ def main():
 
 	torch.save(agent.policy.state_dict(), "model.mdl")
 
+	# graf3
+	# 1) array degli episodi e dei reward
+	episodes = np.arange(1, len(episode_rewards) + 1)
+	rewards  = np.array(episode_rewards)
+
+	# 2) smoothing (media mobile “same”)
+	window = 20
+	kernel = np.ones(window) / window
+	smoothed = np.convolve(rewards, kernel, mode='same')
+
+	# 3) plot
+	plt.figure(figsize=(8, 4))
+	plt.plot(episodes, rewards,  label='raw',    alpha=0.3)
+	plt.plot(episodes, smoothed, label=f'smoothed (w={window})')
+	plt.xlabel('Episode')
+	plt.ylabel('Return')
+	plt.title('Learning Curve (REINFORCE)')
+	plt.legend()
+	plt.tight_layout()
+	plt.savefig('training_curve.png')  # salva PNG
 	
 
 if __name__ == '__main__':

@@ -12,6 +12,8 @@ def discount_rewards(r, gamma):
         discounted_r[t] = running_add
     return discounted_r
 
+#qua definiamo un singolo nn che ha sia actor quindi la policy
+#e critic quindi state-value function
 
 class Policy(torch.nn.Module):
     def __init__(self, state_space, action_space):
@@ -37,8 +39,10 @@ class Policy(torch.nn.Module):
         """
             Critic network
         """
-        # TASK 3: critic network for actor-critic algorithm
-
+        # FATTO DA ME critic network for actor-critic algorithm
+        self.fc1_critic = torch.nn.Linear(state_space, self.hidden)
+        self.fc2_critic = torch.nn.Linear(self.hidden, self.hidden)
+        self.fc3_critic_value = torch.nn.Linear(self.hidden, 1)
 
         self.init_weights()
 
@@ -51,6 +55,8 @@ class Policy(torch.nn.Module):
 
 
     def forward(self, x):
+        #Returns both the action distribution and the state value.
+        #x : torch.Tensor of shape (batch, state_space) or (state_space,)
         """
             Actor
         """
@@ -58,7 +64,8 @@ class Policy(torch.nn.Module):
         x_actor = self.tanh(self.fc2_actor(x_actor))
         action_mean = self.fc3_actor_mean(x_actor)
 
-        sigma = self.sigma_activation(self.sigma)
+        sigma = self.sigma_activation(self.sigma)  # shape (action_space,)
+        # ``Normal`` broadcasts sigma over the batch dimension
         normal_dist = Normal(action_mean, sigma)
 
 
@@ -66,9 +73,12 @@ class Policy(torch.nn.Module):
             Critic
         """
         # TASK 3: forward in the critic network
+        x_critic = self.tanh(self.fc1_critic(x))
+        x_critic = self.tanh(self.fc2_critic(x_critic))
+        state_value = self.fc3_critic_value(x_critic).squeeze(-1)
 
         
-        return normal_dist
+        return normal_dist, state_value   # (distribution, V(s))
 
 
 class Agent(object):
@@ -78,46 +88,66 @@ class Agent(object):
         self.optimizer = torch.optim.Adam(policy.parameters(), lr=1e-3)
 
         self.gamma = 0.99
+
+        #Roll out buffers
         self.states = []
         self.next_states = []
         self.action_log_probs = []
         self.rewards = []
-        self.done = []
+        self.done = []  # 1 if episode finished after transition else 0
 
 
     def update_policy(self):
+        """
+        Using the one‑step TD actor‑critic update from the book:
+            δ_t  = R_t + γ V(s_{t+1}) − V(s_t)
+            θ    ← θ + α_θ  I_t  δ_t  ∇_θ log π_θ(a_t|s_t)
+            w    ← w + α_w        δ_t  ∇_w V_w(s_t)
+        """
+        #from buffers I transform them in tensors
         action_log_probs = torch.stack(self.action_log_probs, dim=0).to(self.train_device).squeeze(-1)
         states = torch.stack(self.states, dim=0).to(self.train_device).squeeze(-1)
         next_states = torch.stack(self.next_states, dim=0).to(self.train_device).squeeze(-1)
         rewards = torch.stack(self.rewards, dim=0).to(self.train_device).squeeze(-1)
         done = torch.Tensor(self.done).to(self.train_device)
-
+        
+        #clear buffers for the next episode
         self.states, self.next_states, self.action_log_probs, self.rewards, self.done = [], [], [], [], []
 
-        #
-        # TASK 2:
-        #   - compute discounted returns
-        #   - compute policy gradient loss function given actions and returns
-        #   - compute gradients and step the optimizer
-        #
-
-
-        #
         # TASK 3:
+        # -------- Critic forward pass -------------------
+        _, state_values = self.policy(states)                  # V(s_t)
+        with torch.no_grad():
+            _, next_state_values = self.policy(next_states)    # V(s_{t+1})
+            # If the episode finished at step t, bootstrap should stop there
+            next_state_values = next_state_values * (1.0 - done)
         #   - compute boostrapped discounted return estimates
         #   - compute advantage terms
+        returns = rewards + self.gamma * next_state_values        # R_t + γ V(s_{t+1})
+        advantages = returns - state_values                       # δ_t
         #   - compute actor loss and critic loss
+        actor_loss = -(action_log_probs * advantages.detach()).mean()
+        critic_loss = F.mse_loss(state_values, returns)
+        total_loss = actor_loss + critic_loss
         #   - compute gradients and step the optimizer
-        #
+        self.optimizer.zero_grad()
+        total_loss.backward()
+        #torch.nn.utils.clip_grad_norm_(self.policy.parameters(), max_norm=0.5)
+        self.optimizer.step()
 
-        return        
+        return {
+            "actor_loss": actor_loss.item(),
+            "critic_loss": critic_loss.item(),
+            "total_loss": total_loss.item(),
+        }
 
 
+    #here state is a np.ndarray and evaluation a boolean
     def get_action(self, state, evaluation=False):
-        """ state -> action (3-d), action_log_densities """
+        #given a state (np array) → sample/return action (+ log‑prob)
         x = torch.from_numpy(state).float().to(self.train_device)
 
-        normal_dist = self.policy(x)
+        normal_dist, _ = self.policy(x)
 
         if evaluation:  # Return mean
             return normal_dist.mean, None
