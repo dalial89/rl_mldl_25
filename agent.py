@@ -116,23 +116,20 @@ class Agent(object):
 
         # TASK 3:
         # -------- Critic forward pass -------------------
-        _, state_values = self.policy(states)                  # V(s_t)
+        _,state_values = self.policy(states)  # V(s_t)
         with torch.no_grad():
-            _, next_state_values = self.policy(next_states)    # V(s_{t+1})
-            # If the episode finished at step t, bootstrap should stop there
-            next_state_values = next_state_values * (1.0 - done)
+            _,next_state_values = self.policy(next_states)    # V(s_{t+1})
         #   - compute boostrapped discounted return estimates
-        #   - compute advantage terms
-        returns = rewards + self.gamma * next_state_values        # R_t + γ V(s_{t+1})
-        advantages = returns - state_values                       # δ_t
+            returns = rewards + self.gamma * (1.0 - done)* next_state_values        # R_t + γ V(s_{t+1})
+        #   - compute advantage terms (for the actor)
+        advantages = (returns - state_values)                     # δ_t
         #   - compute actor loss and critic loss
-        actor_loss = -(action_log_probs * advantages.detach()).mean()
+        actor_loss = -(action_log_probs * advantages.detach()).mean() #mean? per renderlo scalar
         critic_loss = F.mse_loss(state_values, returns)
         total_loss = actor_loss + critic_loss
         #   - compute gradients and step the optimizer
         self.optimizer.zero_grad()
-        total_loss.backward()
-        #torch.nn.utils.clip_grad_norm_(self.policy.parameters(), max_norm=0.5)
+        total_loss.backward()  #o fare separato? 
         self.optimizer.step()
 
         return {

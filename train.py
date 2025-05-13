@@ -18,8 +18,8 @@ from agent import Agent, Policy
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--n-episodes', default=10000, type=int, help='Number of training episodes')
-    parser.add_argument('--print-every', default=2000, type=int, help='Print info every <> episodes')
+    parser.add_argument('--n-episodes', default=5000, type=int, help='Number of training episodes')
+    parser.add_argument('--print-every', default=1000, type=int, help='Print info every <> episodes')
     parser.add_argument('--device', default='cpu', type=str, help='network device [cpu, cuda]')
 
     return parser.parse_args()
@@ -54,10 +54,14 @@ def main():
 		state = env.reset()  # Reset the environment and observe the initial state
 
 		while not done:  # Loop until the episode is over
-
+		
+        #The actor network outputs the probability of taking each possible action, 
+        #which are used to sample an action using the normal (?) distribution 
+    
 			action, action_probabilities = agent.get_action(state)
 			previous_state = state
-
+			
+			#performs the action and receives the next state, reward, and "done" flag from the environment
 			state, reward, done, info = env.step(action.detach().cpu().numpy())
 
 			agent.store_outcome(previous_state, state, action_probabilities, reward, done)
