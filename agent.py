@@ -12,8 +12,8 @@ def discount_rewards(r, gamma):
         discounted_r[t] = running_add
     return discounted_r
 
-#qua definiamo un singolo nn che ha sia actor quindi la policy
-#e critic quindi state-value function
+# Here we define a single neural network that contains both the actor (policy)
+# and the critic (state-value function)
 
 class Policy(torch.nn.Module):
     def __init__(self, state_space, action_space):
@@ -65,7 +65,6 @@ class Policy(torch.nn.Module):
         action_mean = self.fc3_actor_mean(x_actor)
 
         sigma = self.sigma_activation(self.sigma)  # shape (action_space,)
-        # ``Normal`` broadcasts sigma over the batch dimension
         normal_dist = Normal(action_mean, sigma)
 
 
@@ -99,7 +98,7 @@ class Agent(object):
 
     def update_policy(self):
         """
-        Using the one‑step TD actor‑critic update from the book:
+        Using the one‑step TD actor‑critic update used the book:
             δ_t  = R_t + γ V(s_{t+1}) − V(s_t)
             θ    ← θ + α_θ  I_t  δ_t  ∇_θ log π_θ(a_t|s_t)
             w    ← w + α_w        δ_t  ∇_w V_w(s_t)
@@ -118,20 +117,20 @@ class Agent(object):
         _,state_values = self.policy(states)  # V(s_t)
         with torch.no_grad():
             _,next_state_values = self.policy(next_states)    # V(s_{t+1})
-            # next_state_values = next_state_values * (1.0 - done)
-        #   - compute boostrapped discounted return estimates
-            returns = rewards + self.gamma * (1.0 - done)* next_state_values        # R_t + γ V(s_{t+1})
-        #   - compute advantage terms (for the actor)
-        advantages = (returns - state_values)                     # δ_t
+
+        #   - compute boostrapped discounted return estimates -> R_t + γ V(s_{t+1})
+            returns = rewards + self.gamma * (1.0 - done)* next_state_values        
+        #   - compute advantage terms (for the actor) -> δ_t
+        advantages = (returns - state_values)          
         #   - compute actor loss and critic loss
-        actor_loss = -(action_log_probs * advantages.detach()).mean() #mean? per renderlo scalar
+        actor_loss = -(action_log_probs * advantages.detach()).mean() #mean to make it scalar
         critic_loss = F.mse_loss(state_values, returns)
         total_loss = actor_loss + critic_loss
         #   - compute gradients and step the optimizer
         self.optimizer.zero_grad()
-        total_loss.backward()  #o fare separato? 
-        # 3. CLIP sui gradienti di TUTTI i parametri della policy
-        #torch.nn.utils.clip_grad_norm_(self.policy.parameters(), max_norm=0.5)
+        total_loss.backward()  
+        # clip gradients of all parameters to stabilize training
+        torch.nn.utils.clip_grad_norm_(self.policy.parameters(), max_norm=0.5)
         self.optimizer.step()
 
         return {
