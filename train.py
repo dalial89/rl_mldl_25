@@ -14,12 +14,13 @@ import gym
 from env.custom_hopper import *
 from agent import Agent, Policy
 
-
+#render = True
+render = False
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--n-episodes', default=5000, type=int, help='Number of training episodes')
-    parser.add_argument('--print-every', default=1000, type=int, help='Print info every <> episodes')
+    parser.add_argument('--n-episodes', default=10000, type=int, help='Number of training episodes')
+    parser.add_argument('--print-every', default=100, type=int, help='Print info every <> episodes')
     parser.add_argument('--device', default='cpu', type=str, help='network device [cpu, cuda]')
 
     return parser.parse_args()
@@ -65,10 +66,14 @@ def main():
 			state, reward, done, info = env.step(action.detach().cpu().numpy())
 
 			agent.store_outcome(previous_state, state, action_probabilities, reward, done)
-
+			
+			agent.update_policy() #update policy qua?
+			
 			train_reward += reward
+			
+			if render:
+				env.render()
 		
-		agent.update_policy() #update policy qua?
 		episode_rewards.append(train_reward) #graf2
 		if (episode+1)%args.print_every == 0:
 			print('Training episode:', episode)
@@ -93,7 +98,7 @@ def main():
 	plt.plot(episodes, smoothed, label=f'smoothed (w={window})')
 	plt.xlabel('Episode')
 	plt.ylabel('Return')
-	plt.title('Learning Curve (REINFORCE)')
+	plt.title('Learning Curve (ACTOR-CRITIC)')
 	plt.legend()
 	plt.tight_layout()
 	plt.savefig('training_curve.png')  # salva PNG

@@ -19,69 +19,29 @@ import gym
 from env.custom_hopper import *
 
 
-import os
-import cv2
-import gym
-from env.custom_hopper import *
-
 def main():
-    env = gym.make('CustomHopper-source-v0')
-    # env = gym.make('CustomHopper-target-v0')
+	env = gym.make('CustomHopper-source-v0')
+	# env = gym.make('CustomHopper-target-v0')
 
-    print('State space:', env.observation_space)
-    print('Action space:', env.action_space)
-    print('Dynamics parameters:', env.get_parameters())
+	print('State space:', env.observation_space) # state-space
+	print('Action space:', env.action_space) # action-space
+	print('Dynamics parameters:', env.get_parameters()) # masses of each link of the Hopper
 
-    n_episodes = 500
-    save_frames = True  # invece di render
+	n_episodes = 500
+	render = True
 
-    frames_dir = "/content/hopper_frames"
-    os.makedirs(frames_dir, exist_ok=True)
+	for episode in range(n_episodes):
+		done = False
+		state = env.reset()	# Reset environment to initial state
 
-    frame_idx = 0  # contatore globale dei frame
+		while not done:  # Until the episode is over
 
-    for episode in range(n_episodes):
-        done = False
-        state = env.reset()
+			action = env.action_space.sample()	# Sample random action
+		
+			state, reward, done, info = env.step(action)	# Step the simulator to the next timestep
 
-        while not done:
-            action = env.action_space.sample()
-            state, reward, done, info = env.step(action)
-
-            if save_frames:
-                frame = env.render(mode='rgb_array')  # molto importante: mode='rgb_array'
-                frame_filename = os.path.join(frames_dir, f"frame_{frame_idx:06d}.png")
-                cv2.imwrite(frame_filename, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))  # cv2 vuole immagini BGR
-                frame_idx += 1
-
-    env.close()
-
-    # Dopo aver raccolto tutti i frame, creiamo un video
-    make_video_from_frames(frames_dir, output_path="/content/hopper_video.avi", fps=30)
-
-def make_video_from_frames(frames_dir, output_path, fps=30):
-    import glob
-
-    img_array = []
-    filenames = sorted(glob.glob(os.path.join(frames_dir, 'frame_*.png')))
-
-    if not filenames:
-        print("No frames found!")
-        return
-
-    # Leggiamo la dimensione dal primo frame
-    img = cv2.imread(filenames[0])
-    height, width, layers = img.shape
-    size = (width, height)
-
-    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
-
-    for filename in filenames:
-        img = cv2.imread(filename)
-        out.write(img)
-
-    out.release()
-    print(f"Video salvato in {output_path}")
+			if render:
+				env.render()
 
 	
 

@@ -39,7 +39,7 @@ class Policy(torch.nn.Module):
         """
             Critic network
         """
-        # FATTO DA ME critic network for actor-critic algorithm
+        #critic network 
         self.fc1_critic = torch.nn.Linear(state_space, self.hidden)
         self.fc2_critic = torch.nn.Linear(self.hidden, self.hidden)
         self.fc3_critic_value = torch.nn.Linear(self.hidden, 1)
@@ -114,11 +114,11 @@ class Agent(object):
         #clear buffers for the next episode
         self.states, self.next_states, self.action_log_probs, self.rewards, self.done = [], [], [], [], []
 
-        # TASK 3:
-        # -------- Critic forward pass -------------------
+        # TASK 3:Critic forward pass 
         _,state_values = self.policy(states)  # V(s_t)
         with torch.no_grad():
             _,next_state_values = self.policy(next_states)    # V(s_{t+1})
+            # next_state_values = next_state_values * (1.0 - done)
         #   - compute boostrapped discounted return estimates
             returns = rewards + self.gamma * (1.0 - done)* next_state_values        # R_t + γ V(s_{t+1})
         #   - compute advantage terms (for the actor)
@@ -130,6 +130,8 @@ class Agent(object):
         #   - compute gradients and step the optimizer
         self.optimizer.zero_grad()
         total_loss.backward()  #o fare separato? 
+        # 3. CLIP sui gradienti di TUTTI i parametri della policy
+        #torch.nn.utils.clip_grad_norm_(self.policy.parameters(), max_norm=0.5)
         self.optimizer.step()
 
         return {
