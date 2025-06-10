@@ -1,0 +1,11 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('SimOptCMAES_train_results.csv')
+plt.figure(figsize=(12,8))
+plt.plot(df['episode'], df['reward'])
+plt.xlabel('Episode')
+plt.ylabel('Reward')
+plt.title('Training Performance')
+plt.savefig("train_rewards.png")
+plt.show()
