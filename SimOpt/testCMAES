@@ -27,7 +27,7 @@ def main():
     results = [["source→target", env_name, SEED, UDR, mean_reward, std_reward, N_EVAL_EPISODES]]
 
     df = pd.DataFrame(results, columns=['setup', 'env', 'seed', 'udr', 'mean', 'std', 'episodes'])
-    df.to_csv('test_results.csv', index=False)
+    df.to_csv('SimOptCMAES_test_results.csv', index=False)
     print("Test results saved as test_results.csv.")
 
 if __name__ == '__main__':
