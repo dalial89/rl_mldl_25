@@ -249,8 +249,8 @@ def main():
 	
 	for step in range(1, total_timesteps + 1):
 		action, _states = model.predict(obs)
-	        obs, reward, done, info = sim_env.step(action)
-	        episode_reward += reward[0]
+		obs, reward, done, info = sim_env.step(action)
+		episode_reward += reward[0]
 	
 		if done[0]:
 	            running_rewards.append(episode_reward)
