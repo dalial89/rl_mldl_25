@@ -65,7 +65,7 @@ def compute_discrepancy(real_obs, sim_obs): #computing of discrepancy
  
 def main():
 	# Setting the tolerance for the variance
-	tol = 1e-3
+	tol = 1e-1
 	
     	#definition of mean and variances
 	mu_std1 = [3.92699082, 0.5]
