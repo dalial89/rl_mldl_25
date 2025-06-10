@@ -11,6 +11,7 @@ from env.custom_hopper import *
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.monitor import Monitor
 from scipy.ndimage import gaussian_filter1d
 
 def make_env(domain, mass_dist_params):
