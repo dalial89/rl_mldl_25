@@ -228,7 +228,7 @@ def main():
 	#TRAIN THE DEFINITIVE MODEL
 	#n_eval_episodes = 50
 	#eval_interval = 1000 
-	total_timesteps = 2000000
+	total_timesteps = 20000
 
 	#source_rewards = {i: [] for i in range(eval_interval, total_timesteps + 1, eval_interval)}
 	#test_env = gym.make('CustomHopper-target-v0')
