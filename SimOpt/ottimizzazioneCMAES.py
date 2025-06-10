@@ -218,7 +218,7 @@ def main():
 	n_policies = 3
 	n_eval_episodes = 50
 	eval_interval = 1000 
-	total_timesteps = 50000
+	total_timesteps = 100000
 	source_rewards = {i: [] for i in range(eval_interval, total_timesteps + 1, eval_interval)}
 	test_env = gym.make('CustomHopper-target-v0')
 	test_env = Monitor(test_env)
