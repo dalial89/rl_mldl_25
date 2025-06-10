@@ -68,7 +68,7 @@ def main():
 		masses[2] = np.random.normal(mu_std2[0], mu_std2[1], 1)
 		masses[3] = np.random.normal(mu_std3[0], mu_std3[1], 1)
 
-		sim_env.set_parameters(masses[1:])
+		sim_env.set_parameters(masses[1:4])
 		
 		model = train_policy(sim_env)
 		
