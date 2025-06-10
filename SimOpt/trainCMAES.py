@@ -253,7 +253,7 @@ def main():
 		obs, reward, done, info = sim_env.step(action)
 		episode_reward += reward
 	
-		if done[0]:
+		if done:
 	            running_rewards.append(episode_reward)
 	            running_variance = np.var(running_rewards)
 	            episode_rewards.append([episode, episode_reward, running_variance])
