@@ -20,7 +20,7 @@ matplotlib.use('Agg')
 def make_env(domain, mass_dist_params):
     return CustomHopper(domain, mass_dist_params=mass_dist_params)
 
-def train_policy(env, total_timesteps=1000):
+def train_policy(env, total_timesteps=10000):
     model = PPO("MlpPolicy", env, learning_rate=0.001, gamma = 0.99 , verbose=0) #train the model
     model.learn(total_timesteps=total_timesteps)
     model.save("Simopt_ppo_policy")
@@ -218,7 +218,7 @@ def main():
 	n_policies = 3
 	n_eval_episodes = 50
 	eval_interval = 1000 
-	total_timesteps = 10000
+	total_timesteps = 100000
 	source_rewards = {i: [] for i in range(eval_interval, total_timesteps + 1, eval_interval)}
 	test_env = gym.make('CustomHopper-target-v0')
 	test_env = Monitor(test_env)
