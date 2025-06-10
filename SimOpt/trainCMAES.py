@@ -260,14 +260,14 @@ def main():
 	            episode_reward = 0
 	            obs = sim_env.reset()
 	
-	        model.learn(total_timesteps=1, reset_num_timesteps=False)
+		model.learn(total_timesteps=1, reset_num_timesteps=False)
 	
 	# Salva i risultati in CSV
 	df = pd.DataFrame(episode_rewards, columns=['episode', 'reward', 'running_variance'])
 	df.to_csv('SimOptCMAES_train_results.csv', index=False)
 	print("Train results saved as SimOptCMAES_train_results.csv.")
 
-    	model.save("Simopt_ppo_policy_final")
+	model.save("Simopt_ppo_policy_final")
 	
 	'''
     	# Evaluate the final model
