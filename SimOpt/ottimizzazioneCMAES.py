@@ -5,6 +5,7 @@ import nevergrad as ng
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import matplotlib
 import matplotlib.pyplot as plt
 import sys
 from env.custom_hopper import *
@@ -13,6 +14,8 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 from scipy.ndimage import gaussian_filter1d
+
+matplotlib.use('Agg')
 
 def make_env(domain, mass_dist_params):
     return CustomHopper(domain, mass_dist_params=mass_dist_params)
@@ -252,7 +255,8 @@ def main():
 	plt.title('SimOpt Performance')
 	plt.ylabel('Mean Reward')
 	plt.xlabel('Training Timesteps')
-	plt.show()
+	plt.savefig("graficoSimOpt.png")
+
 
 
 if __name__ == '__main__':
