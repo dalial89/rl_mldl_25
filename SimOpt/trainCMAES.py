@@ -8,6 +8,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib
 import matplotlib.pyplot as plt
+from collections import defaultdict
 import sys
 from env.custom_hopper import *
 from stable_baselines3 import PPO
@@ -262,9 +263,10 @@ def main():
 			obs = sim_env.reset()
 	
 		model.learn(total_timesteps=1, reset_num_timesteps=False)
-		mean_reward, _ = evaluate_policy(model, test_env, n_eval_episodes=50, render=False)
-		source_rewards[step].append(mean_reward)
-		print(f"Steps {step:6d}: mean reward on target = {mean_reward:.1f}")
+		if step % eval_interval == 0:
+    			mean_reward, _ = evaluate_policy(model, test_env, n_eval_episodes=50, render=False)
+    			source_rewards[step].append(mean_reward)
+    			print(f"Steps {step:6d}: mean reward on target = {mean_reward:.1f}")
 	
 	# Salva i risultati in CSV
 	df = pd.DataFrame(episode_rewards, columns=['episode', 'reward', 'running_variance'])
