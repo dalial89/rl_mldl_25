@@ -261,7 +261,7 @@ def main():
 			running_variance = np.var(running_rewards) if len(running_rewards) > 1 else 0.0
 			all_episode_rewards.append({
 				'policy': policy_num,
-               			'step': step,'
+               			'step': step,
 		  		'episode': episode_counter,
 				'reward': rew,
 				'running_variance': running_variance})
