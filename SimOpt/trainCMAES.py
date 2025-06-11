@@ -17,7 +17,7 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 from scipy.ndimage import gaussian_filter1d
 
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 
 SEED = 42
 
