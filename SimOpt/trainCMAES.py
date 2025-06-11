@@ -266,6 +266,11 @@ def main():
 					'reward': rew,
 					'running_variance': running_variance})
 				episode_counter += 1
+			if step % (5 * eval_interval) == 0 or step == eval_interval:
+				print(f"\n[INFO] Step {step} | Policy {_} | Mean reward: {mean_reward:.2f}")
+				print(f"[INFO] Episodes collected this step: {len(episode_rewards)}")
+				print(f"[INFO] Total episodes so far: {episode_counter}")
+				
 			sim_env.reset()
 
 		
