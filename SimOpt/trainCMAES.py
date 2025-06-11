@@ -254,7 +254,7 @@ def main():
 		episode_reward += reward
 	
 		if done:
-	        	running_rewards.append(episode_reward)
+			running_rewards.append(episode_reward)
 			running_variance = np.var(running_rewards) 
 			episode_rewards.append([episode, episode_reward, running_variance])
 			episode += 1
