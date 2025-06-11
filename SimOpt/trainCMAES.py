@@ -256,17 +256,17 @@ def main():
 			mean_reward, _ = evaluate_policy(model, test_env, n_eval_episodes=50, render=False)
 			source_rewards[step].append(mean_reward)
 			episode_rewards = sim_env.get_episode_rewards()
-		for rew in running_rewards:
-			running_rewards.append(rew)
-			running_variance = np.var(running_rewards) if len(running_rewards) > 1 else 0.0
-			all_episode_rewards.append({
-				'policy': policy_num,
-               			'step': step,
-		  		'episode': episode_counter,
-				'reward': rew,
-				'running_variance': running_variance})
-			episode_counter += 1
-		sim_env.reset()
+			for rew in episode_rewards:
+				running_rewards.append(rew)
+				running_variance = np.var(running_rewards) if len(running_rewards) > 1 else 0.0
+				all_episode_rewards.append({
+					'policy': policy_num,
+               				'step': step,
+		  			'episode': episode_counter,
+					'reward': rew,
+					'running_variance': running_variance})
+				episode_counter += 1
+			sim_env.reset()
 
 		
 		model.save("Simopt_ppo_policy_final")
