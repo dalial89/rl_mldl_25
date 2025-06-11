@@ -226,65 +226,57 @@ def main():
 		
 		print(f"Updated distributions: {mu_std1}, {mu_std2}, {mu_std3}")
 
-	#TRAIN THE DEFINITIVE MODEL
+#TRAIN THE DEFINITIVE MODEL
+	n_policies = 3
 	n_eval_episodes = 50
 	eval_interval = 1000 
 	total_timesteps = 100000
-
 	source_rewards = {i: [] for i in range(eval_interval, total_timesteps + 1, eval_interval)}
+	
 	test_env = gym.make('CustomHopper-target-v0')
 	test_env = Monitor(test_env)
 
-	sim_env = gym.make('CustomHopper-source-v0')
-	masses = sim.get_parameters()
-	masses[1] = np.random.normal(mu_std1[0], mu_std1[1], 1)
-	masses[2] = np.random.normal(mu_std2[0], mu_std2[1], 1)
-	masses[3] = np.random.normal(mu_std3[0], mu_std3[1], 1)
-	sim_env.set_parameters(masses[1:])
-	model = PPO("MlpPolicy", sim_env, learning_rate=0.001, gamma = 0.99 , verbose=0, seed=SEED) #train the model	
+	all_episode_rewards = []
 
-	episode_rewards = []
-	running_rewards = []
-	episode = 1
-	obs = sim_env.reset()
-	episode_reward = 0
-	
-	for step in range(1, total_timesteps + 1):
-		action, _states = model.predict(obs)
-		obs, reward, done, info = sim_env.step(action)
-		episode_reward += reward
-	
-		if done:
-			running_rewards.append(episode_reward)
-			running_variance = np.var(running_rewards) 
-			episode_rewards.append([episode, episode_reward, running_variance])
-			episode += 1
-			episode_reward = 0
-			obs = sim_env.reset()
-	
-		model.learn(total_timesteps=1, reset_num_timesteps=False)
-		if step % eval_interval == 0:
-    			mean_reward, _ = evaluate_policy(model, test_env, n_eval_episodes=50, render=False)
-    			source_rewards[step].append(mean_reward)
-    			print(f"Steps {step:6d}: mean reward on target = {mean_reward:.1f}")
-	
-	# Salva i risultati in CSV
-	df = pd.DataFrame(episode_rewards, columns=['episode', 'reward', 'running_variance'])
-	df.to_csv('SimOptCMAES_train_results.csv', index=False)
-	print("Train results saved as SimOptCMAES_train_results.csv.")
+	for _ in range(n_policies):
+		sim_env = gym.make('CustomHopper-source-v0')
+		sim_env = Monitor(sim_env)
+		masses = sim.get_parameters()
+		masses[1] = np.random.normal(mu_std1[0], mu_std1[1], 1)
+		masses[2] = np.random.normal(mu_std2[0], mu_std2[1], 1)
+		masses[3] = np.random.normal(mu_std3[0], mu_std3[1], 1)
+		sim_env.set_parameters(masses[1:])
+		model = PPO("MlpPolicy", sim_env, learning_rate=0.001, gamma = 0.99 , verbose=0, seed=42) #train the model	
+		running_rewards = []
+		episode_counter = 0
+		
+    		# Evaluate the final model
+		for step in range(eval_interval, total_timesteps + 1, eval_interval):
+			model.learn(total_timesteps= eval_interval, reset_num_timesteps=False)
+			mean_reward, _ = evaluate_policy(model, test_env, n_eval_episodes=50, render=False)
+			source_rewards[step].append(mean_reward)
+			episode_rewards = sim_env.get_episode_rewards()
+		for rew in running_rewards:
+			running_rewards.append(rew)
+			running_variance = np.var(running_rewards) if len(running_rewards) > 1 else 0.0
+            		all_episode_rewards.append({
+				'policy': policy_num,
+               			'step': step,'
+		  		'episode': episode_counter,
+				'reward': rew,
+				'running_variance': running_variance})
+			episode_counter += 1
+		sim_env.reset()
 
-	model.save("Simopt_ppo_policy_final")
+		
+		model.save("Simopt_ppo_policy_final")
 	
-	'''
-    	# Evaluate the final model
-	for step in range(eval_interval, total_timesteps + 1, eval_interval):
-		model.learn(total_timesteps= eval_interval, reset_num_timesteps=False)
-		mean_reward, _ = evaluate_policy(model, test_env, n_eval_episodes=50, render=False)
-		source_rewards[step].append(mean_reward)
-		print(f"Steps {step:6d}: mean reward on target = {mean_reward:.1f}")
+	df = pd.DataFrame(all_episode_rewards)
+	df.to_csv('SimOpt_episode_rewards.csv', index=False)
+	print("Episode rewards saved as SimOpt_episode_rewards.csv.")
 
 
-   	# Prepare data for plot
+    # Prepare data for plot
 	np.save('SimOpt_results.npy', source_rewards)
 	plot_data = []
 	for step in source_rewards:
@@ -293,7 +285,14 @@ def main():
 
 	df = pd.DataFrame(plot_data, columns=['Environment', 'Timesteps', 'Mean Reward'])
 
-   	'''
+    # Plot the results
+	plt.figure(figsize=(12, 8))
+	sns.lineplot(x='Timesteps', y='Mean Reward', hue='Environment', data=df, errorbar='sd')
+	plt.title('SimOpt Performance')
+	plt.ylabel('Mean Reward')
+	plt.xlabel('Training Timesteps')
+	plt.show()
+
 
 
 if __name__ == '__main__':
