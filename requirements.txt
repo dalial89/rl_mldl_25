@@ -9,5 +9,6 @@ patchelf
 scikit-optimize
 seaborn
 botorch
+nevergrad
 gpytorch
 tqdm
