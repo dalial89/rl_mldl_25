@@ -226,13 +226,13 @@ def main():
 		print(f"Updated distributions: {mu_std1}, {mu_std2}, {mu_std3}")
 
 	#TRAIN THE DEFINITIVE MODEL
-	#n_eval_episodes = 50
-	#eval_interval = 1000 
+	n_eval_episodes = 50
+	eval_interval = 1000 
 	total_timesteps = 100000
 
-	#source_rewards = {i: [] for i in range(eval_interval, total_timesteps + 1, eval_interval)}
-	#test_env = gym.make('CustomHopper-target-v0')
-	#test_env = Monitor(test_env)
+	source_rewards = {i: [] for i in range(eval_interval, total_timesteps + 1, eval_interval)}
+	test_env = gym.make('CustomHopper-target-v0')
+	test_env = Monitor(test_env)
 
 	sim_env = gym.make('CustomHopper-source-v0')
 	masses = sim.get_parameters()
@@ -254,14 +254,17 @@ def main():
 		episode_reward += reward
 	
 		if done:
-	            running_rewards.append(episode_reward)
-	            running_variance = np.var(running_rewards)
-	            episode_rewards.append([episode, episode_reward, running_variance])
-	            episode += 1
-	            episode_reward = 0
-	            obs = sim_env.reset()
+	        	running_rewards.append(episode_reward)
+			running_variance = np.var(running_rewards) 
+			episode_rewards.append([episode, episode_reward, running_variance])
+			episode += 1
+			episode_reward = 0
+			obs = sim_env.reset()
 	
 		model.learn(total_timesteps=1, reset_num_timesteps=False)
+		mean_reward, _ = evaluate_policy(model, test_env, n_eval_episodes=50, render=False)
+		source_rewards[step].append(mean_reward)
+		print(f"Steps {step:6d}: mean reward on target = {mean_reward:.1f}")
 	
 	# Salva i risultati in CSV
 	df = pd.DataFrame(episode_rewards, columns=['episode', 'reward', 'running_variance'])
