@@ -24,7 +24,6 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
-torch.cuda.manual_seed_all(SEED)
 
 def make_env(domain, mass_dist_params):
     env = CustomHopper(domain, mass_dist_params=mass_dist_params)
@@ -227,7 +226,7 @@ def main():
 		print(f"Updated distributions: {mu_std1}, {mu_std2}, {mu_std3}")
 
 #TRAIN THE DEFINITIVE MODEL
-	n_policies = 1
+	n_policies = 3
 	n_eval_episodes = 50
 	eval_interval = 1000 
 	total_timesteps = 100000
@@ -256,28 +255,9 @@ def main():
 			mean_reward, _ = evaluate_policy(model, test_env, n_eval_episodes=50, render=False)
 			source_rewards[step].append(mean_reward)
 			episode_rewards = sim_env.get_episode_rewards()
-			for rew in episode_rewards:
-				running_rewards.append(rew)
-				running_variance = np.var(running_rewards) if len(running_rewards) > 1 else 0.0
-				all_episode_rewards.append({
-               				'step': step,
-		  			'episode': episode_counter,
-					'reward': rew,
-					'running_variance': running_variance})
-				episode_counter += 1
-			if step % (5 * eval_interval) == 0 or step == eval_interval:
-				print(f"\n[INFO] Step {step} | Policy {_} | Mean reward: {mean_reward:.2f}")
-				print(f"[INFO] Episodes collected this step: {len(episode_rewards)}")
-				print(f"[INFO] Total episodes so far: {episode_counter}")
-				
-			sim_env.reset()
-
+			print(f"Step: {step}, Mean Reward: {mean_reward:.2f}")
 		
 		model.save("Simopt_ppo_policy_final")
-	
-	df = pd.DataFrame(all_episode_rewards)
-	df.to_csv('SimOpt_episode_rewards.csv', index=False)
-	print("Episode rewards saved as SimOpt_episode_rewards.csv.")
 
 
     # Prepare data for plot
@@ -287,11 +267,13 @@ def main():
 		for reward in source_rewards[step]:
 			plot_data.append(['Source-Target', step, reward])
 
-	df = pd.DataFrame(plot_data, columns=['Environment', 'Timesteps', 'Mean Reward'])
+	df1 = pd.DataFrame(plot_data, columns=['Environment', 'Timesteps', 'Mean Reward'])
+	df2 = pd.DataFrame([(step, rw) for step, rewards in source_rewards.items() for rw in rewards], columns=['Timesteps', 'Mean Reward'])
+
 
     # Plot the results
 	plt.figure(figsize=(12, 8))
-	sns.lineplot(x='Timesteps', y='Mean Reward', hue='Environment', data=df, errorbar='sd')
+	sns.lineplot(x='Timesteps', y='Mean Reward', hue='Environment', data=df1, errorbar='sd')
 	plt.title('SimOpt Performance')
 	plt.ylabel('Mean Reward')
 	plt.xlabel('Training Timesteps')
