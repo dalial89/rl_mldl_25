@@ -226,10 +226,10 @@ def main():
 		print(f"Updated distributions: {mu_std1}, {mu_std2}, {mu_std3}")
 
 #TRAIN THE DEFINITIVE MODEL
-	n_policies = 3
+	n_policies = 1
 	n_eval_episodes = 50
 	eval_interval = 1000 
-	total_timesteps = 500000
+	total_timesteps = 200000
 	source_rewards = {i: [] for i in range(eval_interval, total_timesteps + 1, eval_interval)}
 	
 	test_env = gym.make('CustomHopper-target-v0')
