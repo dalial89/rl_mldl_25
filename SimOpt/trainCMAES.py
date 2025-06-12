@@ -230,7 +230,7 @@ def main():
 #TRAIN THE DEFINITIVE MODEL
 		n_policies = 1
 		eval_interval = 10000
-		total_timesteps = 500000
+		total_timesteps = 50000
 		episodes_per_block = 5
 		
 		csv_data = []
