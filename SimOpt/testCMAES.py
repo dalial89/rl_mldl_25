@@ -5,7 +5,7 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from env.custom_hopper import CustomHopper
 
 
-def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=100):
+def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=1000):
     model = PPO.load(model_path)
     env = CustomHopper(env_name)
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=episodes, render=False)
