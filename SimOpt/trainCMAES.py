@@ -10,8 +10,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 from collections import defaultdict
 import sys
-import csv
-import os
 from env.custom_hopper import *
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -228,75 +226,6 @@ def main():
 		print(f"Updated distributions: {mu_std1}, {mu_std2}, {mu_std3}")
 
 #TRAIN THE DEFINITIVE MODEL
-		n_policies = 1
-		eval_interval = 10000
-		total_timesteps = 50000
-		episodes_per_block = 5
-		
-		csv_data = []
-		output_folder = "training_logs"
-		os.makedirs(output_folder, exist_ok=True)
-		
-		for policy_idx in range(n_policies):
-		    sim_env = gym.make('CustomHopper-source-v0')
-		    sim_env = Monitor(sim_env)
-		    
-		    masses = sim.get_parameters()
-		    masses[1] = np.random.normal(mu_std1[0], mu_std1[1], 1)
-		    masses[2] = np.random.normal(mu_std2[0], mu_std2[1], 1)
-		    masses[3] = np.random.normal(mu_std3[0], mu_std3[1], 1)
-		    sim_env.set_parameters(masses[1:])
-		    
-		    model = PPO("MlpPolicy", sim_env, learning_rate=0.001, gamma=0.99, verbose=0, seed=SEED)
-		
-		    episode_count = 0
-		    episode_rewards = []
-		
-		    n_blocks = total_timesteps // eval_interval
-		
-		    for block in range(n_blocks):
-		        print(f"\n TRAINING BLOCK {block + 1}/{n_blocks}")
-		        model.learn(total_timesteps=eval_interval, reset_num_timesteps=False)
-		
-		        for ep in range(episodes_per_block):
-		            obs = sim_env.reset()
-		            done = False
-		            total_reward = 0
-		
-		            while not done:
-		                action, _states = model.predict(obs, deterministic=True)
-		                obs, reward, done, info = sim_env.step(action)
-		                total_reward += reward
-		
-		            episode_rewards.append(total_reward)
-		            running_variance = 0.0 if episode_count == 0 else np.var(episode_rewards)
-		            csv_data.append([episode_count + 1, total_reward, running_variance])
-		            episode_count += 1
-		            print(f" Episode {episode_count} — Reward: {total_reward:.2f} — Variance: {running_variance:.2f}")
-		
-		    # Salva modello
-		    model.save("Simopt_ppo_policy_final")
-		
-		# Salva CSV
-		csv_path = os.path.join(output_folder, "training_episode_rewards.csv")
-		with open(csv_path, mode='w', newline='') as f:
-		    writer = csv.writer(f)
-		    writer.writerow(["episode", "reward", "running_variance"])
-		    writer.writerows(csv_data)
-
-		df = pd.DataFrame(csv_data, columns=["episode", "reward", "running_variance"])
-		plt.figure(figsize=(12, 6))
-		plt.plot(df["episode"], df["reward"], label="Reward per Episode")
-		plt.xlabel("Episode")
-		plt.ylabel("Reward")
-		plt.title("Training Rewards Over Episodes")
-		plt.grid(True)
-		plt.legend()
-		plot_path = os.path.join(output_folder, "training_rewards_plot.png")
-		plt.savefig(plot_path)
-		plt.close()
-		print(f"Grafico salvato in: {plot_path}")
-	'''
 	n_policies = 3
 	n_eval_episodes = 50
 	eval_interval = 1000 
@@ -350,9 +279,11 @@ def main():
 	plt.xlabel('Training Timesteps')
 	plt.savefig('SimOpt_Performance.png')
 	plt.close()
-'''
+
 
 
 
 if __name__ == '__main__':
 	main()	
+
+
