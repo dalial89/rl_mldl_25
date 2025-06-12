@@ -1,34 +1,45 @@
 import gym
 import pandas as pd
-from env.custom_hopper import *
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines3.common.vec_env import DummyVecEnv
 
-SEED = 42
-N_EVAL_EPISODES = 50
-UDR = True  
+def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=100):
+    model = PPO.load(model_path)
+    env = gym.make(env_name)
+    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=episodes, render=False)
+
+    return {
+        'setup': setup_name,
+        'env': env_name,
+        'seed': seed,
+        'udr': udr,
+        'mean': mean_reward,
+        'std': std_reward,
+        'episodes': episodes
+    }
 
 def main():
-    model = PPO.load("Simopt_ppo_policy_final")
+    results = []
 
-    env_name = 'CustomHopper-target-v0'
-    real_env = gym.make(env_name)
-    real_env.seed(SEED)
-    real_env.action_space.seed(SEED)
-    real_env = DummyVecEnv([lambda: real_env])
+    # Configurazioni da testare
+    configs = [
+        ('Simopt_ppo_policy_final', 'CustomHopper-source-v0', 10, True, 'source→source'),
+        ('Simopt_ppo_policy_final', 'CustomHopper-target-v0', 10, True, 'source→target'),
+        ('Simopt_ppo_policy_final', 'CustomHopper-target-v0', 10, True, 'target→target')
+    ]
 
-    # Evaluate policy
-    mean_reward, std_reward = evaluate_policy(model, real_env, n_eval_episodes=N_EVAL_EPISODES, render=False)
+    for model_path, env_name, seed, udr, setup_name in configs:
+        result = evaluate_setup(model_path, env_name, seed, udr, setup_name)
+        results.append(result)
 
-    print(f"Mean Reward: {mean_reward:.2f} | Std Reward: {std_reward:.2f}")
+    # Crea il DataFrame
+    df_results = pd.DataFrame(results)
 
-    # Prepara il CSV
-    results = [["source→target", env_name, SEED, UDR, mean_reward, std_reward, N_EVAL_EPISODES]]
+    # Salva la tabella in CSV
+    df_results.to_csv('results_table.csv', index=False)
 
-    df = pd.DataFrame(results, columns=['setup', 'env', 'seed', 'udr', 'mean', 'std', 'episodes'])
-    df.to_csv('SimOptCMAES_test_results.csv', index=False)
-    print("Test results saved as test_results.csv.")
+    # Mostra tabella
+    print(df_results)
 
 if __name__ == '__main__':
     main()
