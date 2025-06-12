@@ -277,7 +277,9 @@ def main():
 	plt.title('SimOpt Performance')
 	plt.ylabel('Mean Reward')
 	plt.xlabel('Training Timesteps')
-	plt.show()
+	plt.savefig('SimOpt_Performance.png')
+	plt.close()
+
 
 
 
