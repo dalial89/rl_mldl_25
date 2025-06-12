@@ -2,10 +2,12 @@ import gym
 import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
+from env.custom_hopper import CustomHopper
+
 
 def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=100):
     model = PPO.load(model_path)
-    env = gym.make(env_name)
+    env = CustomHopper(env_name)
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=episodes, render=False)
 
     return {
