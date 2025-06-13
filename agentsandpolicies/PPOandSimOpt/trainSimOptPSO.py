@@ -25,9 +25,6 @@ from stable_baselines3.common.monitor import Monitor
 
 # ---------- project imports ----------
 from env.custom_hopper import *                               # noqa: F403
-from utils_simopt import (                                    # noqa: F401
-    HopperMassRandomGaussianWrapper, gap as gap_fn, get_obs
-)
 
 # ---------- costanti ----------
 SOURCE_ENV   = "CustomHopper-source-v0"
