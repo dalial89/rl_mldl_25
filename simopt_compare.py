@@ -80,7 +80,7 @@ def simopt_once(optim_cls: type,
 
     for _ in range(budget):
         x = optim.ask()
-        masses3 = np.array([x["m0"], x["m1"], x["m2"]])   # (3,)
+        masses3 = np.array([x["m0"].value, x["m1"].value, x["m2"].value])
 
         # -- costruisci il vettore completo (4 masse)
         masses_full = base_masses.copy()
