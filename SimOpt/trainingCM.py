@@ -117,12 +117,12 @@ def main():
 		
 		#OPTIMIZE AND UPDATE 		
 		optimizer = optimize_parameters(mu_vars)
-        	for _ in range(optimizer.budget):
-            		candidate = optimizer.ask()
+		for _ in range(optimizer.budget):
+			candidate = optimizer.ask()
 			optimizer.tell(candidate, discrepancy)
 		recommendation = optimizer.recommend()
 		print("Best candidate:", recommendation.value)
-
+		
 		mu_vars = update_distribution(mu_vars, recommendation)
 		print("Updated distributions:", mu_vars)
 
