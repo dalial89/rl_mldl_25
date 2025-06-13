@@ -106,10 +106,10 @@ def main():
 		
 		#DISCREPANCY
 		# Calculate the discrepancy between simulation and reality using the discrepancy function
-		min_length = min(min(len(obs) for obs in obs_real), min(len(obs) for obs in obs_sim))
-		obs_real = [obs[:min_length] for obs in obs_real]
-		obs_sim = [obs[:min_length] for obs in obs_sim]
-		discrepancy = discrepancy_score(obs_real, obs_sim)
+		min_length = min(min(len(obs) for obs in real_obs), min(len(obs) for obs in sim_obs))
+		real_obs = [obs[:min_length] for obs in real_obs]
+		sim_obs = [obs[:min_length] for obs in sim_obs]
+		discrepancy = discrepancy_score(real_obs, sim_obs)
 		print("Discrepancy: ", discrepancy)
 		
 		#OPTIMIZE AND UPDATE 		
