@@ -57,7 +57,7 @@ def discrepancy_score(real_obs, sim_obs,w1=1.0, w2=0.1, sigma=1.0):
 	sim_obs = np.array(sim_obs)
 	diff = sim_obs - real_obs
 	l1 = gaussian_filter1d(np.sum(np.abs(diff), axis=1), sigma=sigma)
-	l2 = gaussian_filter1d(l2_norm = np.sum(diff ** 2, axis=1), sigma=sigma)
+	l2 = gaussian_filter1d(np.sum(diff ** 2, axis=1), sigma=sigma)
 	discrepancy = w1 * np.sum(l1) + w2 * np.sum(l2)
 	return discrepancy
 
