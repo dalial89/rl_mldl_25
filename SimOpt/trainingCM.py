@@ -98,10 +98,10 @@ def main():
 		policy = PPO.load("Simopt_ppo_policy")
 
 		real_env = gym.make('CustomHopper-target-v0')
-        	real_env.set_parameters(masses[1:])
-        	real_avg, real_obs = evaluate_policy_on_env(real_env, policy)
+		real_env.set_parameters(masses[1:])
+		real_avg, real_obs = evaluate_policy_on_env(real_env, policy)
 		print(f"Average Return REAL: {real_avg:.2f}")
-
+		
 		sim_env = gym.make('CustomHopper-source-v0')
 		sim_env.set_parameters(masses[1:])
 		sim_avg, sim_obs = evaluate_policy_on_env(sim_env, policy)
