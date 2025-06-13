@@ -226,7 +226,7 @@ def main():
 		print(f"Updated distributions: {mu_std1}, {mu_std2}, {mu_std3}")
 
 #TRAIN THE DEFINITIVE MODEL
-	n_policies = 1
+	#n_policies = 1
 	n_eval_episodes = 50
 	eval_interval = 1000 
 	total_timesteps = 500000
@@ -237,7 +237,7 @@ def main():
 
 	all_episode_rewards = []
 	reward_log = []
-
+	'''
 	for _ in range(n_policies):
 		sim_env = gym.make('CustomHopper-source-v0')
 		sim_env = Monitor(sim_env)
@@ -262,6 +262,30 @@ def main():
 			print(f"Step: {step}, Mean Reward: {mean_reward:.2f}")
 		
 		model.save("Simopt_ppo_policy_final")
+  	'''
+	sim_env = gym.make('CustomHopper-source-v0')
+	sim_env = Monitor(sim_env)
+	masses = sim.get_parameters()
+	masses[1] = np.random.normal(mu_std1[0], mu_std1[1], 1)
+	masses[2] = np.random.normal(mu_std2[0], mu_std2[1], 1)
+	masses[3] = np.random.normal(mu_std3[0], mu_std3[1], 1)
+	sim_env.set_parameters(masses[1:])
+	model = PPO("MlpPolicy", sim_env, learning_rate=0.001, gamma = 0.99 , verbose=0, seed=42) #train the model	
+				
+    	# Evaluate the final model
+	for step in range(eval_interval, total_timesteps + 1, eval_interval):
+		model.learn(total_timesteps= eval_interval, reset_num_timesteps=False)
+		mean_reward, _ = evaluate_policy(model, test_env, n_eval_episodes=50, render=False)
+		source_rewards[step].append(mean_reward)
+		episode_rewards = sim_env.get_episode_rewards()
+		if episode_rewards:
+			reward = episode_rewards[-1]
+			all_episode_rewards.append(reward)
+			running_var = 0.0 if len(all_episode_rewards) == 1 else np.var(all_episode_rewards)
+			reward_log.append((step, reward, running_var))
+		print(f"Step: {step}, Mean Reward: {mean_reward:.2f}")
+		
+	model.save("Simopt_ppo_policy_final")
 
 
     # Prepare data for plot
