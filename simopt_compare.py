@@ -110,7 +110,6 @@ def main():
 
     ALGOS = {
         "CMA": ng.optimizers.CMA,
-        "SepCMA": ng.optimizers.SepCMA,
         "DE": ng.optimizers.DE,
         "PSO": ng.optimizers.PSO,
         "NGOpt8": ng.optimizers.NGOpt8,
