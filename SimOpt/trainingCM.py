@@ -129,7 +129,7 @@ def main():
 #TRAIN THE DEFINITIVE MODEL
 	n_eval_episodes = 50
 	eval_interval = 1000 
-	total_timesteps = 500000
+	total_timesteps = 50000
 	
 	sim_env = Monitor(gym.make('CustomHopper-source-v0'))
 	masses = sim.get_parameters()
