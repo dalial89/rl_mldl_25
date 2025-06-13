@@ -1,10 +1,10 @@
 """
 SimOpt benchmark con più ottimizzatori Nevergrad
 ------------------------------------------------
-• Policy: PPO (SB3)
+• Policy: PPO (Stable-Baselines3)
 • Ambiente: CustomHopper-source / target
 • Si ottimizzano le prime 3 masse; la quarta resta invariata.
-• Algoritmi: CMA, DE, PSO, NGOpt8
+• Algoritmi testati: DE, PSO, NGOpt8
 • Gestione robusta di masse fuori range e warning MuJoCo.
 """
 
@@ -39,8 +39,8 @@ def eval_reward(model: PPO, env_id: str, masses: np.ndarray,
                 episodes: int) -> float:
     env = gym.make(env_id)
     env.set_parameters(masses)
-    mean, _ = evaluate_policy(model, env, n_eval_episodes=episodes,
-                              render=False)
+    mean, _ = evaluate_policy(model, env,
+                              n_eval_episodes=episodes, render=False)
     env.close()
     return mean
 
@@ -66,7 +66,9 @@ def simopt_once(optim_cls, budget: int, episodes_eval: int,
 
     for _ in range(budget):
         cand = optim.ask()
-        masses3 = np.array([cand["m0"].value, cand["m1"].value, cand["m2"].value])
+        masses3 = np.array([cand["m0"].value,
+                            cand["m1"].value,
+                            cand["m2"].value])
         masses_full = base_masses.copy()
         masses_full[:3] = masses3
 
@@ -84,7 +86,7 @@ def simopt_once(optim_cls, budget: int, episodes_eval: int,
                               masses_full, episodes_eval)
             disc = abs(r_t - r_s)
 
-        except Exception as e:                     # MuJoCo warning → wysok penalty
+        except Exception as e:                     # MuJoCo warning → penalità
             disc = 1e9
             print("Iterazione saltata:", e)
 
@@ -105,9 +107,8 @@ def main():
     args = ap.parse_args()
 
     ALGOS = {
-        "CMA": ng.optimizers.CMA,
-        "DE":  ng.optimizers.DE,
-        "PSO": ng.optimizers.PSO,
+        "DE":   ng.optimizers.DE,
+        "PSO":  ng.optimizers.PSO,
         "NGOpt8": ng.optimizers.NGOpt8,
     }
 
@@ -125,7 +126,7 @@ def main():
     print(df[["algo", "run", "best_disc"]].to_string(index=False))
     print(f"Tempo totale: {time.time()-t0:.1f}s")
 
-    # grafico rapido
+    # grafico
     try:
         import matplotlib.pyplot as plt, seaborn as sns
         sns.barplot(data=df, x="algo", y="best_disc", errorbar="sd")
