@@ -10,6 +10,6 @@ scikit-optimize
 seaborn
 botorch
 gpytorch
-nevergrad>=0.6.0
+nevergrad
 tqdm
 
