@@ -55,7 +55,6 @@ def evaluate_policy_on_env(env, model, n_episodes=50):
 def discrepancy_score(real_obs, sim_obs,w1=1.0, w2=0.1, sigma=1.0):
 	real_obs = np.array(real_obs)
 	sim_obs = np.array(sim_obs)
-	assert sim_obs.shape == real_obs.shape, "Observation shapes do not match"
 	diff = sim_obs - real_obs
 	l1 = gaussian_filter1d(np.sum(np.abs(diff), axis=1), sigma=sigma)
 	l2 = gaussian_filter1d(l2_norm = np.sum(diff ** 2, axis=1), sigma=sigma)
@@ -95,8 +94,6 @@ def main():
 		for i in range(1, 4):
            		masses[i] = np.random.normal(mu_vars[i - 1][0], mu_vars[i - 1][1], 1)
         	sim_env.set_parameters(masses[1:4])
-		#model = train_agent(sim_env)
-		#model = PPO.load("Simopt_ppo_policy")
 		train_agent(sim_env)
 		policy = PPO.load("Simopt_ppo_policy")
 
