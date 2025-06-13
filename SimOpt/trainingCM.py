@@ -88,9 +88,6 @@ def main():
 	while all(v[1] > tol for v in mu_vars):
 		sim_env = gym.make('CustomHopper-source-v0')
 		masses = sim_env.get_parameters()
-		masses[1] = np.random.normal(mu_std1[0], mu_std1[1], 1)
-		masses[2] = np.random.normal(mu_std2[0], mu_std2[1], 1)
-		masses[3] = np.random.normal(mu_std3[0], mu_std3[1], 1)
 		for i in range(1, 4):
 			masses[i] = np.random.normal(mu_vars[i - 1][0], mu_vars[i - 1][1], 1)
 		sim_env.set_parameters(masses[1:4])
