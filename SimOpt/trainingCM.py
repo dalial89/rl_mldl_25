@@ -129,7 +129,7 @@ def main():
 	total_timesteps = 50000
 	
 	sim_env = Monitor(gym.make('CustomHopper-source-v0'))
-	masses = sim.get_parameters()
+	masses = sim_env.get_parameters()
 	for i in range(3):
 		masses[i + 1] = np.random.normal(mu_vars[i][0], mu_vars[i][1], 1)
 	sim_env.set_parameters(masses[1:])
