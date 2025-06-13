@@ -41,7 +41,7 @@ def main():
     df_results.to_csv('results_table.csv', index=False)
 
     # Mostra tabella
-    print(df_results)
+    display(df_results)
 
 if __name__ == '__main__':
     main()
