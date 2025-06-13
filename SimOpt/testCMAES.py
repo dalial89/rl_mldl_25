@@ -4,6 +4,8 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from env.custom_hopper import CustomHopper
 
+pd.set_option("display.max_columns", None)
+
 
 def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=100):
     model = PPO.load(model_path)
