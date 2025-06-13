@@ -92,8 +92,8 @@ def main():
 		masses[2] = np.random.normal(mu_std2[0], mu_std2[1], 1)
 		masses[3] = np.random.normal(mu_std3[0], mu_std3[1], 1)
 		for i in range(1, 4):
-           		masses[i] = np.random.normal(mu_vars[i - 1][0], mu_vars[i - 1][1], 1)
-        	sim_env.set_parameters(masses[1:4])
+			masses[i] = np.random.normal(mu_vars[i - 1][0], mu_vars[i - 1][1], 1)
+		sim_env.set_parameters(masses[1:4])
 		train_agent(sim_env)
 		policy = PPO.load("Simopt_ppo_policy")
 
