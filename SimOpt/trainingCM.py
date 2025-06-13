@@ -163,10 +163,10 @@ def main():
 
     #save the results
 	df1 = pd.DataFrame([(k, v[0]) for k, v in source_rewards.items()], columns=["Timesteps", "Mean Reward"])
-    	df1['Environment'] = 'Source-Target'
-    	df_log = pd.DataFrame(reward_log, columns=["step", "reward", "running_variance"])
-    	df_log.to_csv("training_step_reward_variance.csv", index=False)
-    	np.save('SimOpt_results.npy', source_rewards)
+	df1['Environment'] = 'Source-Target'
+	df_log = pd.DataFrame(reward_log, columns=["step", "reward", "running_variance"])
+	df_log.to_csv("training_step_reward_variance.csv", index=False)
+	np.save('SimOpt_results.npy', source_rewards)
 
     #Plot the results
 	plt.figure(figsize=(12, 8))
