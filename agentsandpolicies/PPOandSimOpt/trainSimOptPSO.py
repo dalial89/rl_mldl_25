@@ -1,19 +1,22 @@
 """
 trainSimOptPSO.py
 -----------------
-Addestra tre modelli:
+All‑in‑one trainer che produce:
 
-1. source_base_seed<seed>_final.zip   – PPO vanilla su source
-2. target_base_seed<seed>_final.zip   – PPO vanilla su target
-3. simopt_final_seed<seed>.zip        – PPO addestrato con SimOpt (ottimizzazione masse via PSO)
+1. **source_base_seed<seed>_final.zip**   – PPO vanilla su _source_
+2. **target_base_seed<seed>_final.zip**   – PPO vanilla su _target_
+3. **simopt_final_seed<seed>.zip**        – PPO addestrato con SimOpt (PSO)
 
-Esempio d'uso:
-$ python trainSimOptPSO.py --seed 42 --device cpu
+Esempio:
+```
+python trainSimOptPSO.py --seed 42 --device cpu
+```
 """
 
 import argparse
 import json
 import random
+import sys
 from pathlib import Path
 from typing import Dict, List
 
@@ -25,25 +28,29 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 
-# ---------------------------------------------------------------------------
-#  wrapped utilities (no external utils_simopt.py needed)
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+#  IMPORTA e registra l'ambiente custom
+#  (richiede che la cartella "env" sia sul PYTHONPATH e contenga __init__.py)
+# -------------------------------------------------------------------------
+import env.custom_hopper  # noqa: F401  - esegue la register dei 3 ID Gym
+
+# -------------------------------------------------------------------------
+#  Wrapper + funzioni di utilità – tutto in questo file (niente utils_simopt)
+# -------------------------------------------------------------------------
 class HopperMassRandomGaussianWrapper(gym.Wrapper):
-    """Campiona le prime 3 masse (torso/thigh, leg, foot) da N(μ, σ²) ad
-    ogni reset, usando il dizionario *phi* {part: [μ, σ]} passato a init.
-    """
+    """Domain Randomization: campiona le prime tre masse da N(μ, σ²) a ogni reset."""
+
+    _order = ["thigh", "leg", "foot"]  # mapping sulle prime 3 masse body_mass[1:]
 
     def __init__(self, env: gym.Env, phi: Dict[str, List[float]]):
         super().__init__(env)
-        self.phi = phi  # dict con chiavi 'thigh', 'leg', 'foot'
-        self._order = ["thigh", "leg", "foot"]  # prime 3 masse di body_mass[1:]
+        self.phi = phi
 
     def reset(self, **kwargs):
-        # preleva masse originali e sostituisce le prime 3 con campioni
         masses = self.env.get_parameters().copy()
         for i, key in enumerate(self._order):
-            mu, sigma = self.phi[key]
-            masses[i] = np.random.normal(mu, sigma)
+            mu, sig = self.phi[key]
+            masses[i] = np.random.normal(mu, sig)
         self.env.set_parameters(masses)
         return self.env.reset(**kwargs)
 
@@ -52,18 +59,14 @@ class HopperMassRandomGaussianWrapper(gym.Wrapper):
 
 
 def gap(real: List[np.ndarray], sim: List[np.ndarray]) -> float:
-    """Gap semplice: somma degli L2 tra vettori osservazione.
-    *real* e *sim* sono liste di array già tagliati alla stessa lunghezza.
-    """
-    real_arr = np.concatenate(real)
-    sim_arr = np.concatenate(sim)
-    return float(np.linalg.norm(real_arr - sim_arr, ord=2))
+    """Simple L2 gap between flattened observation trajectories."""
+    return float(np.linalg.norm(np.concatenate(real) - np.concatenate(sim)))
 
 
-def get_obs(model: PPO, env: gym.Env, n_episodes: int = 3) -> List[np.ndarray]:
-    """Raccoglie le osservazioni di *n_episodes* esecuzioni deterministiche."""
+def get_obs(model: PPO, env: gym.Env, n_ep: int = 3) -> List[np.ndarray]:
+    """Collects flattened observation trajectories over *n_ep* deterministic rollouts."""
     obs_trajs: List[np.ndarray] = []
-    for _ in range(n_episodes):
+    for _ in range(n_ep):
         done, traj = False, []
         obs = env.reset()
         while not done:
@@ -74,22 +77,22 @@ def get_obs(model: PPO, env: gym.Env, n_episodes: int = 3) -> List[np.ndarray]:
     env.close()
     return obs_trajs
 
-# ---------------------------------------------------------------------------
-#  costanti
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+#  Costanti
+# -------------------------------------------------------------------------
 SOURCE_ENV = "CustomHopper-source-v0"
 TARGET_ENV = "CustomHopper-target-v0"
 TOTAL_STEPS_BASE = 2_000
-SIMOPT_PSO_BUDGET = 40
-SIMOPT_PSO_SIGMA = 0.5
+SIMOPT_BUDGET = 40          # iterazioni PSO
+SIGMA = 0.5
 FINE_TUNE_STEPS = 40_000
 FINAL_TRAIN_STEPS = 2_000_000
 BETA = 0.1
 MODEL_DIR = Path("models_weights"); MODEL_DIR.mkdir(exist_ok=True)
 
-# ---------------------------------------------------------------------------
-#  util varie
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+#  Helper
+# -------------------------------------------------------------------------
 
 def set_seed(seed: int):
     random.seed(seed); np.random.seed(seed); torch.manual_seed(seed)
@@ -117,49 +120,44 @@ def train_vanilla(env_id: str, tag: str, seed: int, device: str):
     print(f"{tag}: {m:.1f} ± {s:.1f}")
 
 
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 #  SimOpt con PSO
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 
 def train_simopt(seed: int, device: str):
-    # distribuzione iniziale delle masse (μ, σ)
     phi = {"thigh": [3.93, 0.5], "leg": [2.71, 0.5], "foot": [5.09, 0.5]}
     model = PPO("MlpPolicy", make_env(SOURCE_ENV, seed, phi), seed=seed, verbose=0, device=device)
 
-    instrum = ng.p.Dict(
-        thigh=ng.p.Scalar(phi["thigh"][0]).set_bounds(0.1, 20).set_mutation(sigma=SIMOPT_PSO_SIGMA),
-        leg  =ng.p.Scalar(phi["leg"][0]).set_bounds(0.1, 20).set_mutation(sigma=SIMOPT_PSO_SIGMA),
-        foot =ng.p.Scalar(phi["foot"][0]).set_bounds(0.1, 20).set_mutation(sigma=SIMOPT_PSO_SIGMA),
+    instr = ng.p.Dict(
+        thigh=ng.p.Scalar(phi["thigh"][0]).set_bounds(0.1, 20).set_mutation(sigma=SIGMA),
+        leg  =ng.p.Scalar(phi["leg"][0]).set_bounds(0.1, 20).set_mutation(sigma=SIGMA),
+        foot =ng.p.Scalar(phi["foot"][0]).set_bounds(0.1, 20).set_mutation(sigma=SIGMA),
     )
-    optim = ng.optimizers.PSO(parametrization=instrum, budget=SIMOPT_PSO_BUDGET)
+    optim = ng.optimizers.PSO(parametrization=instr, budget=SIMOPT_BUDGET)
 
-    def evaluate_phi(phi_cand: Dict[str, List[float]]) -> float:
-        # 1) fine‑tune breve
+    def obj(mu_vals):
+        # costruisci φ candidato con i μ proposti dal PSO
+        phi_cand = {k: [mu_vals[k], phi[k][1]] for k in phi}
         model.set_env(make_env(SOURCE_ENV, seed, phi_cand))
         model.learn(total_timesteps=FINE_TUNE_STEPS, reset_num_timesteps=False)
-        # 2) gap osservazioni
         real = get_obs(model, make_env(TARGET_ENV, seed), 3)
-        sim  = get_obs(model, make_env(SOURCE_ENV, seed, phi_cand), 3)
+        sim = get_obs(model, make_env(SOURCE_ENV, seed, phi_cand), 3)
         L = min(min(len(r) for r in real), min(len(s) for s in sim))
-        gap_val = gap([r[:L] for r in real], [s[:L] for s in sim])
-        # 3) reward target
+        g = gap([r[:L] for r in real], [s[:L] for s in sim])
         ret, _ = evaluate_policy(model, make_env(TARGET_ENV, seed), 3, True)
-        return gap_val - BETA * ret
+        return g - BETA * ret
 
-    # PSO loop
-    for k in range(SIMOPT_PSO_BUDGET):
+    for k in range(SIMOPT_BUDGET):
         cand = optim.ask()
-        mu_dict = {key: [cand[key].value, phi[key][1]] for key in phi}
-        loss = evaluate_phi(mu_dict)
+        loss = obj(cand.value)
         optim.tell(cand, loss)
         print(f"PSO iter {k}: loss {loss:.3f}")
 
     best_mu = optim.recommend().value
+    for k in phi:
+        phi[k][0] = best_mu[k]
     print("PSO – migliori μ:", best_mu)
-    for key in phi:
-        phi[key][0] = best_mu[key]
 
-    # training finale lungo
     final_path = MODEL_DIR / f"simopt_final_seed{seed}.zip"
     train_env = make_env(SOURCE_ENV, seed, phi)
     final_model = PPO("MlpPolicy", train_env, seed=seed, verbose=0, device=device)
@@ -167,14 +165,12 @@ def train_simopt(seed: int, device: str):
     final_model.save(str(final_path)); train_env.close()
     m, s = evaluate_policy(final_model, make_env(SOURCE_ENV, seed, phi), 20, True)
     print(f"SimOpt (PSO) return: {m:.1f} ± {s:.1f}")
-
-    # salva φ
     (MODEL_DIR / f"simopt_phi_seed{seed}.json").write_text(json.dumps(phi, indent=2))
     return final_path
 
-# ---------------------------------------------------------------------------
-#  main pipeline
-# ---------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+#  main
+# -------------------------------------------------------------------------
 
 def main(seed: int = 42, device: str = "cpu"):
     set_seed(seed)
@@ -183,11 +179,11 @@ def main(seed: int = 42, device: str = "cpu"):
     train_simopt(seed, device)
 
 
-# ---------------- CLI ----------------
 if __name__ == "__main__":
-    cl = argparse.ArgumentParser()
-    cl.add_argument("--seed", type=int, default=42)
-    cl.add_argument("--device", default="cpu")
-    args = cl.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--device", default="cpu")
+    args = parser.parse_args()
     main(args.seed, args.device)
+
 
