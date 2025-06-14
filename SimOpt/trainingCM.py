@@ -34,7 +34,7 @@ def setup_environment(domain, parameters):
 	env.action_space.seed(SEED)
 	return env
 
-def train_agent(env, steps=10000):
+def train_agent(env, steps=5000):
 	model = PPO("MlpPolicy", env, learning_rate=0.001, gamma = 0.99 , verbose=0, seed=SEED)
 	model.learn(total_timesteps=steps)
 	model.save("Simopt_ppo_policy")
@@ -81,7 +81,7 @@ def optimize_parameters(mu_vars):
 		params[k].value = mu_vars[i][0]
 		params[k].set_mutation(sigma=mu_vars[i][1])
 		params[k].mutate()
-	opt = ng.optimizers.CMA(parametrization=params, budget=1300)
+	opt = ng.optimizers.CMA(parametrization=params, budget=5)
 	return opt
  
 def main():	
