@@ -1,74 +1,31 @@
-import gym
-import pandas as pd
-import numpy as np
-from stable_baselines3 import PPO
-from stable_baselines3.common.monitor import Monitor
-from env.custom_hopper import CustomHopper
+import time
 
-pd.set_option("display.max_columns", None)
+MAX_STEPS = 2000  # reasonable cap for Hopper
 
+for ep in range(episodes):
+    obs = env.reset()
+    done = False
+    total_reward = 0.0
+    steps = 0
+    start_time = time.time()
 
-def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=100):
-    model = PPO.load(model_path)
-    env = Monitor(CustomHopper(env_name))
+    while not done and steps < MAX_STEPS:
+        action, _ = model.predict(obs, deterministic=True)
+        obs, reward, done, info = env.step(action)
 
-    episode_rewards = []
-    episode_lengths = []
+        # safety check
+        if not np.isfinite(reward) or not np.all(np.isfinite(obs)):
+            print(f"[WARNING] Episode {ep+1}: Non-finite reward or obs detected.")
+            break
 
-    for ep in range(episodes):
-        obs = env.reset()
-        done = False
-        total_reward = 0.0
-        steps = 0
+        total_reward += reward
+        steps += 1
 
-        while not done:
-            action, _ = model.predict(obs, deterministic=True)
-            obs, reward, done, info = env.step(action)
-            total_reward += reward
-            steps += 1
+        # emergency timeout if step loop takes too long
+        if time.time() - start_time > 10:  # seconds
+            print(f"[WARNING] Episode {ep+1} taking too long... breaking.")
+            break
 
-            # Optional: catch invalid rewards
-            if not np.isfinite(reward):
-                print(f"[WARNING] Episode {ep+1}: Non-finite reward: {reward}")
-                break
-
-        episode_rewards.append(total_reward)
-        episode_lengths.append(steps)
-        print(f"[DEBUG] Episode {ep+1} — Reward: {total_reward:.2f} | Steps: {steps}")
-
-    mean_reward = np.mean(episode_rewards)
-    std_reward = np.std(episode_rewards)
-
-    return {
-        'setup': setup_name,
-        'env': env_name,
-        'seed': seed,
-        'udr': udr,
-        'mean': mean_reward,
-        'std': std_reward,
-        'episodes': episodes
-    }
-
-
-def main():
-    results = []
-
-    # Configurations to evaluate
-    configs = [
-        ('Simopt_ppo_policy_final', 'CustomHopper-source-v0', 42, True, 'source→source'),
-        ('Simopt_ppo_policy_final', 'CustomHopper-target-v0', 42, True, 'source→target'),
-        ('Simopt_ppo_policy_final', 'CustomHopper-target-v0', 42, True, 'target→target')
-    ]
-
-    for model_path, env_name, seed, udr, setup_name in configs:
-        result = evaluate_setup(model_path, env_name, seed, udr, setup_name)
-        results.append(result)
-
-    # Create and save result table
-    df_results = pd.DataFrame(results)
-    df_results.to_csv('results_table.csv', index=False)
-    print("\nFinal Results:\n", df_results)
-
-
-if __name__ == '__main__':
-    main()
+    episode_rewards.append(total_reward)
+    episode_lengths.append(steps)
+    print(f"[DEBUG] Episode {ep+1} — Reward: {total_reward:.2f} | Steps: {steps}")
