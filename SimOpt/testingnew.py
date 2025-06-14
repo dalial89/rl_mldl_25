@@ -9,7 +9,7 @@ from env.custom_hopper import CustomHopper
 pd.set_option("display.max_columns", None)
 
 
-def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=50):
+def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=1000):
     model = PPO.load(model_path)
     env = Monitor(CustomHopper(env_name))
 
