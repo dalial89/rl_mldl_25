@@ -86,6 +86,26 @@ def main():
 	tol = 1e-3 #will be used as stopping criterion for the following cycle 
 
 	while all(v[1] > tol for v in mu_vars):
+		optimizer = optimize_parameters(mu_vars)
+	        for _ in range(optimizer.budget):
+	            candidate = optimizer.ask()
+	            new_masses = [candidate[k].value for k in ['x1', 'x2', 'x3']]
+	            sim_env = setup_environment("CustomHopper-source-v0", new_masses)
+	            train_agent(sim_env)
+	            policy = PPO.load("Simopt_ppo_policy")
+	            real_env = setup_environment("CustomHopper-target-v0", new_masses)
+	            _, real_obs = evaluate_policy_on_env(real_env, policy)
+	            _, sim_obs = evaluate_policy_on_env(sim_env, policy)
+	            min_length = min(min(len(obs) for obs in real_obs), min(len(obs) for obs in sim_obs))
+	            real_obs = [obs[:min_length] for obs in real_obs]
+	            sim_obs = [obs[:min_length] for obs in sim_obs]
+	            discrepancy = discrepancy_score(real_obs, sim_obs)
+	            optimizer.tell(candidate, discrepancy)
+	        recommendation = optimizer.recommend()
+	        print("Best candidate:", recommendation.value)
+	        mu_vars = update_distribution(mu_vars, recommendation)
+	        print("Updated distributions:", mu_vars)
+		'''
 		sim_env = gym.make('CustomHopper-source-v0')
 		masses = sim_env.get_parameters()
 		for i in range(1, 4):
@@ -122,6 +142,7 @@ def main():
 		
 		mu_vars = update_distribution(mu_vars, recommendation)
 		print("Updated distributions:", mu_vars)
+  		'''
 
 #TRAIN THE DEFINITIVE MODEL
 	n_eval_episodes = 50
