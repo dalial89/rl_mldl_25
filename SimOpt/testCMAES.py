@@ -2,6 +2,7 @@ import gym
 import pandas as pd
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.monitor import Monitor
 from env.custom_hopper import CustomHopper
 
 pd.set_option("display.max_columns", None)
