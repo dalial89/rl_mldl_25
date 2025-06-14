@@ -26,7 +26,10 @@ np.random.seed(SEED)
 torch.manual_seed(SEED)
 
 def setup_environment(domain, parameters):
-	env = CustomHopper(domain, mass_dist_params=parameters)
+	#env = CustomHopper(domain, mass_dist_params=parameters)
+	env = CustomHopper(domain)
+	env.set_parameters(parameters)
+
 	env.seed(SEED)
 	env.action_space.seed(SEED)
 	return env
