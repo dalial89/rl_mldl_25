@@ -16,6 +16,9 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 
+from scipy.stats import wasserstein_distance
+from sklearn.metrics.pairwise import rbf_kernel
+
 from env.custom_hopper import *
 
 matplotlib.use('Agg')
@@ -55,7 +58,7 @@ def evaluate_policy_on_env(env, model, n_episodes=50):
 		collected_obs.append(np.concatenate(obs_list))
 	return cumulative_reward / n_episodes, collected_obs
 
-def discrepancy_score(real_obs, sim_obs,w1=1.0, w2=0.1, sigma=1.0):
+def discrepancy_score1(real_obs, sim_obs,w1=1.0, w2=0.1, sigma=1.0):
 	real_obs = np.array(real_obs)
 	sim_obs = np.array(sim_obs)
 	diff = sim_obs - real_obs
@@ -63,6 +66,24 @@ def discrepancy_score(real_obs, sim_obs,w1=1.0, w2=0.1, sigma=1.0):
 	l2 = gaussian_filter1d(np.sum(diff ** 2, axis=1), sigma=sigma)
 	discrepancy = w1 * np.sum(l1) + w2 * np.sum(l2)
 	return discrepancy
+	
+def mmd_distance(X, Y, gamma=1.0):
+	XX = rbf_kernel(X, X, gamma=gamma)
+	YY = rbf_kernel(Y, Y, gamma=gamma)
+	XY = rbf_kernel(X, Y, gamma=gamma)
+	return np.mean(XX) + np.mean(YY) - 2 * np.mean(XY)
+	
+def discrepancy_score2(real_obs, sim_obs): #maximum mean
+	real_obs = np.vstack(real_obs)
+	sim_obs = np.vstack(sim_obs)
+	discrepancy = mmd_distance(real_obs, sim_obs, gamma=0.5)
+	return discrepancy
+
+def discrepancy_score3(real_obs, sim_obs): #wasserstein distance
+	real_obs = np.vstack(real_obs)
+	sim_obs = np.vstack(sim_obs)
+	discrepancy = wasserstein_multivariate(real_obs, sim_obs)
+	return discrepancy 
 
 def update_distribution(mu_vars, recommendation):
 	updated = []
