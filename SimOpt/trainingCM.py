@@ -104,10 +104,10 @@ def main():
 			sim_obs = [obs[:min_length] for obs in sim_obs]
 			discrepancy = discrepancy_score(real_obs, sim_obs)
 			optimizer.tell(candidate, discrepancy)
-			recommendation = optimizer.recommend()
-			print("Best candidate:", recommendation.value)
-			mu_vars = update_distribution(mu_vars, recommendation)
-			print("Updated distributions:", mu_vars)
+		recommendation = optimizer.recommend()
+		print("Best candidate:", recommendation.value)
+		mu_vars = update_distribution(mu_vars, recommendation)
+		print("Updated distributions:", mu_vars)
 		'''
 		sim_env = gym.make('CustomHopper-source-v0')
 		masses = sim_env.get_parameters()
