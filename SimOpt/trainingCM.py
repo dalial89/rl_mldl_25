@@ -123,7 +123,7 @@ def main():
 			min_length = min(min(len(obs) for obs in real_obs), min(len(obs) for obs in sim_obs))
 			real_obs = [obs[:min_length] for obs in real_obs]
 			sim_obs = [obs[:min_length] for obs in sim_obs]
-			discrepancy = discrepancy_score2(real_obs, sim_obs)
+			discrepancy = discrepancy_score3(real_obs, sim_obs)
 			optimizer.tell(candidate, discrepancy)
 		recommendation = optimizer.recommend()
 		print("Best candidate:", recommendation.value)
