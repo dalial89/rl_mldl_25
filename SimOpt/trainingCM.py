@@ -37,7 +37,7 @@ def setup_environment(domain, parameters):
 	env.action_space.seed(SEED)
 	return env
 
-def train_agent(env, steps=10000):
+def train_agent(env, steps=20000):
 	model = PPO("MlpPolicy", env, learning_rate=0.001, gamma = 0.99 , verbose=0, seed=SEED)
 	model.learn(total_timesteps=steps)
 	model.save("Simopt_ppo_policy")
@@ -153,7 +153,7 @@ def main():
 		min_length = min(min(len(obs) for obs in real_obs), min(len(obs) for obs in sim_obs))
 		real_obs = [obs[:min_length] for obs in real_obs]
 		sim_obs = [obs[:min_length] for obs in sim_obs]
-		discrepancy = discrepancy_score(real_obs, sim_obs)
+		discrepancy = discrepancy_score2(real_obs, sim_obs)
 		print("Discrepancy: ", discrepancy)
 		
 		#OPTIMIZE AND UPDATE 		
@@ -171,7 +171,7 @@ def main():
 #TRAIN THE DEFINITIVE MODEL
 	n_eval_episodes = 50
 	eval_interval = 1000 
-	total_timesteps = 200000
+	total_timesteps = 100000
 	
 	sim_env = Monitor(gym.make('CustomHopper-source-v0'))
 	masses = sim_env.get_parameters()
