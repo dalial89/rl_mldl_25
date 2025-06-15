@@ -79,6 +79,17 @@ def discrepancy_score2(real_obs, sim_obs): #maximum mean
 	discrepancy = mmd_distance(real_obs, sim_obs, gamma=0.5)
 	return discrepancy
 
+def wasserstein_multivariate(X, Y):
+	X = np.vstack(X)
+	Y = np.vstack(Y)
+	if X.shape[1] != Y.shape[1]:
+		raise ValueError("X and Y must have the same number of features (columns).")
+	dists = []
+	for dim in range(X.shape[1]):
+		d = wasserstein_distance(X[:, dim], Y[:, dim])
+		dists.append(d)
+	return np.mean(dists)
+
 def discrepancy_score3(real_obs, sim_obs): #wasserstein distance
 	real_obs = np.vstack(real_obs)
 	sim_obs = np.vstack(sim_obs)
