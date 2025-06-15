@@ -37,7 +37,7 @@ def setup_environment(domain, parameters):
 	env.action_space.seed(SEED)
 	return env
 
-def train_agent(env, steps=20000):
+def train_agent(env, steps=10000):
 	model = PPO("MlpPolicy", env, learning_rate=0.001, gamma = 0.99 , verbose=0, seed=SEED)
 	model.learn(total_timesteps=steps)
 	model.save("Simopt_ppo_policy")
