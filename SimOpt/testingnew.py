@@ -2,38 +2,21 @@ import gym
 import pandas as pd
 import numpy as np
 import time
-import random
-import torch
-
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
-from gym.wrappers import TimeLimit
 from env.custom_hopper import CustomHopper
 
 pd.set_option("display.max_columns", None)
 
-def set_seed(seed):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-
-def make_env(env_name, udr):
-    env = CustomHopper(env_name, apply_udr=udr)
-    env = Monitor(env)
-    return env
 
 def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=100):
-    set_seed(seed)
-    
     model = PPO.load(model_path)
-    MAX_STEPS = 1000  # Maximum steps per episode
-    
-    env = make_env(env_name, udr=udr)
+    env = Monitor(CustomHopper(env_name))
 
     episode_rewards = []
     episode_lengths = []
 
+    MAX_STEPS = 1000  # Maximum steps per episode
     TIMEOUT = 10      # Maximum seconds per episode
 
     for ep in range(episodes):
