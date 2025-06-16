@@ -10,13 +10,16 @@ pd.set_option("display.max_columns", None)
 
 
 def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=100):
+    set_seed(seed)
+    
     model = PPO.load(model_path)
-    env = Monitor(CustomHopper(env_name))
+    MAX_STEPS = 1000  # Maximum steps per episode
+    
+    env = make_env(env_name, udr=udr, max_steps=max_steps)
 
     episode_rewards = []
     episode_lengths = []
 
-    MAX_STEPS = 1000  # Maximum steps per episode
     TIMEOUT = 10      # Maximum seconds per episode
 
     for ep in range(episodes):
