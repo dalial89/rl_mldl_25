@@ -18,10 +18,9 @@ def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-def make_env(env_name, udr, max_steps):
+def make_env(env_name, udr):
     env = CustomHopper(env_name, apply_udr=udr)
     env = Monitor(env)
-    env = TimeLimit(env, max_episode_steps=max_steps)
     return env
 
 def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=100):
