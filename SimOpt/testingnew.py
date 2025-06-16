@@ -29,7 +29,7 @@ def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=100):
     model = PPO.load(model_path)
     MAX_STEPS = 1000  # Maximum steps per episode
     
-    env = make_env(env_name, udr=udr, max_steps=max_steps)
+    env = make_env(env_name, udr=udr)
 
     episode_rewards = []
     episode_lengths = []
