@@ -8,6 +8,17 @@ from env.custom_hopper import CustomHopper
 
 pd.set_option("display.max_columns", None)
 
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+def make_env(env_name, udr, max_steps):
+    env = CustomHopper(env_name, apply_udr=udr)
+    env = Monitor(env)
+    env = TimeLimit(env, max_episode_steps=max_steps)
+    return env
 
 def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=100):
     set_seed(seed)
