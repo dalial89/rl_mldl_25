@@ -16,7 +16,7 @@ def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=100):
     episode_rewards = []
     episode_lengths = []
 
-    MAX_STEPS = 4000  # Maximum steps per episode
+    MAX_STEPS = 1000  # Maximum steps per episode
     TIMEOUT = 10      # Maximum seconds per episode
 
     for ep in range(episodes):
