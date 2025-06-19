@@ -113,7 +113,7 @@ def optimize_parameters(mu_vars):
 		params[k].value = mu_vars[i][0]
 		params[k].set_mutation(sigma=mu_vars[i][1])
 		params[k].mutate()
-	opt = ng.optimizers.CMA(parametrization=params, budget=1300)
+	opt = ng.optimizers.CMA(parametrization=params, budget=100)
 	return opt
  
 def main():	
