@@ -112,7 +112,7 @@ def optimize_parameters(mu_vars):
 	for i, k in enumerate(['x1', 'x2', 'x3']):
 		params[k].value = mu_vars[i][0]
 		params[k].set_mutation(sigma=mu_vars[i][1])
-		params[k].mutate()
+		#params[k].mutate()
 	opt = ng.optimizers.CMA(parametrization=params, budget=10)
 	return opt
  
@@ -137,10 +137,6 @@ def main():
 			discrepancy = discrepancy_score1(real_obs, sim_obs)
 			print("Discrepancy: ", discrepancy)
 			optimizer.tell(candidate, discrepancy)
-			optimizer = optimize_parameters(mu_vars)
-			for _ in range(optimizer.budget):
-				candidate = optimizer.ask()
-				optimizer.tell(candidate, discrepancy)
 		recommendation = optimizer.recommend()
 		print("Best candidate:", recommendation.value)
 		mu_vars = update_distribution(mu_vars, recommendation)
