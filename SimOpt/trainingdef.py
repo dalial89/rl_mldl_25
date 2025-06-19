@@ -16,6 +16,7 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.stats import wasserstein_distance
 from sklearn.metrics.pairwise import rbf_kernel
 
+matplotlib.use('Agg')
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
