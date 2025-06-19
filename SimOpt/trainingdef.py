@@ -6,6 +6,7 @@ import nevergrad as ng
 import argparse
 import pandas as pd
 import seaborn as sns
+import matplotlib
 import matplotlib.pyplot as plt
 
 from env.custom_hopper import *
