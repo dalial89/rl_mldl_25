@@ -142,11 +142,6 @@ def main():
 		mu_vars = update_distribution(mu_vars, recommendation)
 		print("Updated distributions:", mu_vars)
 		'''
-		sim_env = gym.make('CustomHopper-source-v0')
-		masses = sim_env.get_parameters()
-		for i in range(1, 4):
-			masses[i] = np.random.normal(mu_vars[i - 1][0], mu_vars[i - 1][1], 1)
-		sim_env.set_parameters(masses[1:4])
 		train_agent(sim_env)
 		policy = PPO.load("Simopt_ppo_policy")
 
@@ -155,8 +150,6 @@ def main():
 		real_avg, real_obs = evaluate_policy_on_env(real_env, policy)
 		print(f"Average Return REAL: {real_avg:.2f}")
 		
-		sim_env = gym.make('CustomHopper-source-v0')
-		sim_env.set_parameters(masses[1:])
 		sim_avg, sim_obs = evaluate_policy_on_env(sim_env, policy)
 		print(f"Average Return SIM: {sim_avg:.2f}")
   		'''
