@@ -101,7 +101,7 @@ def simopt_loop(mu_vars, discrepancy_method):
 
     return mu_vars
 
-def final_training(mu_vars):
+def final_training(mu_vars, total_steps):
     masses = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]
     env_train = gym.make('CustomHopper-source-v0')
     env_train.set_parameters(masses)
@@ -111,7 +111,7 @@ def final_training(mu_vars):
     rewards = {}
     log = []
 
-    for step in range(1000, 100001, 1000):
+    for step in range(1000, total_steps + 1, 1000):
         model.learn(total_timesteps=1000, reset_num_timesteps=False)
         avg, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
         rewards[step] = [avg]
@@ -129,11 +129,12 @@ def final_training(mu_vars):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--discrepancy", choices=["score1", "score2", "score3"], default="score1")
+    parser.add_argument("--final_steps", type=int, default=100000, help="Total training steps for final training")
     args = parser.parse_args()
 
     mu_init = [[3.92699082, 0.5], [2.71433605, 0.5], [5.0893801, 0.5]]
     mu_final = simopt_loop(mu_init, args.discrepancy)
-    final_training(mu_final)
+    final_training(mu_final,args.final_steps)
 
 if __name__ == '__main__':
     main()
