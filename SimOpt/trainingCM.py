@@ -135,7 +135,12 @@ def main():
 			real_obs = [obs[:min_length] for obs in real_obs]
 			sim_obs = [obs[:min_length] for obs in sim_obs]
 			discrepancy = discrepancy_score1(real_obs, sim_obs)
+			print("Discrepancy: ", discrepancy)
 			optimizer.tell(candidate, discrepancy)
+			optimizer = optimize_parameters(mu_vars)
+			for _ in range(optimizer.budget):
+				candidate = optimizer.ask()
+				optimizer.tell(candidate, discrepancy)
 		recommendation = optimizer.recommend()
 		print("Best candidate:", recommendation.value)
 		mu_vars = update_distribution(mu_vars, recommendation)
@@ -157,26 +162,7 @@ def main():
 		sim_env = gym.make('CustomHopper-source-v0')
 		sim_env.set_parameters(masses[1:])
 		sim_avg, sim_obs = evaluate_policy_on_env(sim_env, policy)
-		print(f"Average Return SIM: {sim_avg:.2f}")	
-		
-		#DISCREPANCY
-		# Calculate the discrepancy between simulation and reality using the discrepancy function
-		min_length = min(min(len(obs) for obs in real_obs), min(len(obs) for obs in sim_obs))
-		real_obs = [obs[:min_length] for obs in real_obs]
-		sim_obs = [obs[:min_length] for obs in sim_obs]
-		discrepancy = discrepancy_score(real_obs, sim_obs)
-		print("Discrepancy: ", discrepancy)
-		
-		#OPTIMIZE AND UPDATE 		
-		optimizer = optimize_parameters(mu_vars)
-		for _ in range(optimizer.budget):
-			candidate = optimizer.ask()
-			optimizer.tell(candidate, discrepancy)
-		recommendation = optimizer.recommend()
-		print("Best candidate:", recommendation.value)
-		
-		mu_vars = update_distribution(mu_vars, recommendation)
-		print("Updated distributions:", mu_vars)
+		print(f"Average Return SIM: {sim_avg:.2f}")
   		'''
 
 #TRAIN THE DEFINITIVE MODEL
