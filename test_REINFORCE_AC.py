@@ -80,6 +80,7 @@ def run_test(
     agent = AgentClass(policy, device=device, baseline=baseline, eps=eps)
 
     # --- evaluation loop ---------------------------------------------------
+    returns = []
     for episode in range(n_episodes):
         state = env.reset()
         done, test_reward = False, 0.0
@@ -93,7 +94,21 @@ def run_test(
                 env.render()
             test_reward += reward
 
+        returns.append(test_reward)
+
         print(f"Episode: {episode} | Return: {test_reward:.2f}")
+
+# --- summary metrics ---------------------------------------------------
+    returns = np.array(returns)
+    mean_ret = returns.mean()
+    std_ret  = returns.std(ddof=1)
+    print(f"\nEvaluated over {n_episodes} episodes:")
+    print(f"  Mean return    = {mean_ret:.2f}")
+    print(f"  Std. dev.      = {std_ret:.2f}")
+    print(f"  Min / Max      = {returns.min():.2f} / {returns.max():.2f}")
+    # 95% confidence interval (approx):
+    ci95 = 1.96 * std_ret / np.sqrt(n_episodes)
+    print(f"  95% CI of mean = ±{ci95:.2f}")
 
 if __name__ == "__main__":
     import argparse
