@@ -30,7 +30,7 @@ def import_agent_module(agent_name: str):
         raise exc
     # Qui restituiamo davvero Policy e Agent
     if not all(hasattr(module, cls) for cls in ("Policy", "Agent")):
-        raise AttributeError(f"[ERROR] {pkg} deve esporre Policy e Agent")
+        raise AttributeError(f"[ERROR] {pkg} should contain Policy and Agent")
     return module.Policy, module.Agent
 
 
