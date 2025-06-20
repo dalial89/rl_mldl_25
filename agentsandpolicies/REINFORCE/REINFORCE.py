@@ -59,40 +59,40 @@ class Policy(torch.nn.Module):
 
 
 class Agent(object):
-    def __init__(self, policy, device='cpu'):
+    def __init__(self, policy, device='cpu', gamma = 0.99, lr=1e-3, baseline=False, eps=1e-8): 
         self.train_device = device
         self.policy = policy.to(self.train_device)
-        self.optimizer = torch.optim.Adam(policy.parameters(), lr=1e-3)
+        self.optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
 
-        self.gamma = 0.99
-        self.states = []
-        self.next_states = []
+        self.gamma = gamma
         self.action_log_probs = []
         self.rewards = []
-        self.done = []
+        self.baseline = baseline
+        self.eps = eps
+
+
 
 
     def update_policy(self):
+        """
+        This function is used to update the parameters of the policy.
+        """
         action_log_probs = torch.stack(self.action_log_probs, dim=0).to(self.train_device).squeeze(-1)
         rewards = torch.stack(self.rewards, dim=0).to(self.train_device).squeeze(-1)
 
+
         returns = discount_rewards(rewards, self.gamma)  
 
-        T = returns.size(0)
-        discounts = (self.gamma ** torch.arange(T, 
-                          dtype=returns.dtype, 
-                          device=self.train_device))
+        if self.baseline:
+            returns = (returns - returns.mean()) / (returns.std() + self.eps)
 
-        policy_loss = -(discounts * action_log_probs * returns).mean() #mean anziche sum?
+        policy_loss = -(action_log_probs * returns).sum() 
 
         self.optimizer.zero_grad()
         policy_loss.backward()
         self.optimizer.step()
 
-        self.action_log_probs, self.rewards = [], []
-
-
-        return        
+        self.action_log_probs, self.rewards = [], [] 
 
 
     def get_action(self, state, evaluation=False):
@@ -113,10 +113,8 @@ class Agent(object):
             return action, action_log_prob
 
 
-    def store_outcome(self, state, next_state, action_log_prob, reward, done):
-        self.states.append(torch.from_numpy(state).float())
-        self.next_states.append(torch.from_numpy(next_state).float())
+    def store_outcome(self, action_log_prob, reward):
         self.action_log_probs.append(action_log_prob)
         self.rewards.append(torch.Tensor([reward]))
-        self.done.append(done)
+
 

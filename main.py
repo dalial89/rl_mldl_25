@@ -1,138 +1,169 @@
+#!/usr/bin/env python3
 import argparse
 import subprocess
 import sys
-import random
 from pathlib import Path
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="RL-MLDL-25 Pipeline Launcher"
+    )
+    # High-level actions
+    parser.add_argument("--ppo_tuning",   action="store_true",
+                        help="Run the standard PPO hyperparameter sweep")
+    parser.add_argument("--udr_tuning",   action="store_true",
+                        help="Run the UDR mass-randomization sweep")
+    parser.add_argument("--run_training", action="store_true",
+                        help="Run training for the selected agent")
+    parser.add_argument("--run_testing",  action="store_true",
+                        help="Run evaluation/testing of trained models")
+    parser.add_argument("--simopt_train", action="store_true",
+                        help="Run adaptive SimOpt training (Bayesian)")
+    parser.add_argument("--simopt_test",  action="store_true",
+                        help="Run evaluation/testing of Bayesian SimOpt models")
+    parser.add_argument("--simopt_pso",   action="store_true",
+                        help="Run PSO-based SimOpt training and evaluation")
+
+    # Common options
+    parser.add_argument("--agent",    choices=["REINFORCE","ActorCritic","PPO"],
+                        default="REINFORCE",
+                        help="Which agent to train/test")
+    parser.add_argument("--use-udr",  action="store_true",
+                        help="Enable UDR when training or testing (PPO)")
+    parser.add_argument("--baseline", action="store_true",
+                        help="Enable mean-std baseline (for REINFORCE/ActorCritic)")
+    parser.add_argument("--eps",      type=float, default=1e-8,
+                        help="Epsilon for baseline normalization")
+    parser.add_argument("--seed",     type=int, default=42,
+                        help="Random seed forwarded to sub-scripts")
+    parser.add_argument("--device",   choices=["cpu","cuda"], default="cpu",
+                        help="Compute device forwarded to sub-scripts")
+    parser.add_argument("--episodes", type=int, default=100_000,
+                        help="Number of training or evaluation episodes")
+    parser.add_argument("--render",   action="store_true",
+                        help="Render the envs during evaluation")
+    return parser.parse_args()
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Run tuning, training, or evaluation"
-    )
-    parser.add_argument(
-        "--ppo_tuning",
-        action="store_true",
-        help="Run the standard PPO hyperparameter sweep"
-    )
-    parser.add_argument(
-        "--udr_tuning",
-        action="store_true",
-        help="Run the UDR mass-randomization sweep"
-    )
-    parser.add_argument(
-        "--run_training",
-        action="store_true",
-        help="Run final PPO training with best UDR + hyperparameters"
-    )
-    parser.add_argument(
-        "--run_testing",
-        action="store_true",
-        help="Run evaluation/testing of trained vanilla and UDR models"
-    )
-    parser.add_argument(
-        "--use-udr",
-        action="store_true",
-        help="Enable UDR when training or testing"
-    )
-    parser.add_argument(
-        "--render",
-        action="store_true",
-        help="Render the envs while running evaluation"
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=42,
-        help="Random seed forwarded to scripts"
-    )
-    parser.add_argument(
-        "--device",
-        default="cpu",
-        help="Compute device forwarded to sub-scripts"
-    )
-    parser.add_argument(
-        "--episodes",
-        type=int,
-        default=50,
-        help="Number of episodes for evaluation scripts"
-    )
-    # SimOpt flags
-    parser.add_argument(
-        "--simopt_train",
-        action="store_true",
-        help="Run adaptive SimOpt training (Bayesian)"
-    )
-    parser.add_argument(
-        "--simopt_test",
-        action="store_true",
-        help="Run evaluation/testing of SimOpt models (Bayesian)"
-    )
-    # PSO-based SimOpt (train + test)
-    parser.add_argument(
-        "--simopt_pso",
-        action="store_true",
-        help="Run PSO-based SimOpt training and evaluation"
-    )
-    args = parser.parse_args()
-
+    args = parse_args()
     print("\n===== RL-MLDL-25 Pipeline Launcher =====\n")
 
     # Require at least one action
     if not any([
-        args.ppo_tuning, args.udr_tuning, args.run_training,
-        args.run_testing, args.simopt_train, args.simopt_test,
+        args.ppo_tuning, args.udr_tuning,
+        args.run_training, args.run_testing,
+        args.simopt_train, args.simopt_test,
         args.simopt_pso
     ]):
-        parser.error(
-            "Please specify an action: --ppo_tuning, --udr_tuning,"
-            " --run_training, --run_testing, --simopt_train,"
-            " --simopt_test or --simopt_pso"
-        )
+        sys.exit("Error: specify at least one of --ppo_tuning, --udr_tuning, "
+                 "--run_training, --run_testing, --simopt_train, --simopt_test, "
+                 "or --simopt_pso")
 
-    # PPO hyperparameter sweep
+    # 1) PPO hyperparameter sweep
     if args.ppo_tuning:
         print(">>> Starting PPO hyperparameter sweep...")
         from tuning.PPO_tuning import main as ppo_main
         ppo_main()
         print(">>> PPO hyperparameter sweep completed.\n")
 
-    # UDR mass-randomization sweep
+    # 2) UDR mass-randomization sweep
     if args.udr_tuning:
         print(">>> Starting UDR mass-randomization sweep...")
         from tuning.PPO_UDR_tuning import main as udr_main
         udr_main()
         print(">>> UDR mass-randomization sweep completed.\n")
 
-    # Final PPO training (vanilla or UDR)
+    # 3) Training (and automatic test for REINFORCE/ActorCritic)
     if args.run_training:
-        print(">>> Starting final PPO training with best UDR + configs...")
-        from agentsandpolicies.PPOandUDR.run_trainingPPOandUDR import main as train_main
-        train_main(seed=args.seed, use_udr=args.use_udr)
-        print(">>> Final PPO training completed.\n")
+        print(f">>> Starting training for {args.agent} (episodes={args.episodes})...")
+        if args.agent in ("REINFORCE", "ActorCritic"):
+            # 3.a) Train
+            script_tr = (Path(__file__).resolve().parent
+                         / "agentsandpolicies" / "REINFORCE"
+                         / "train_REINFORCE_AC.py")
+            cmd_tr = [
+                sys.executable, str(script_tr),
+                "--episodes", str(args.episodes),
+                "--device",   args.device
+            ]
+            if args.baseline:
+                cmd_tr.append("--baseline")
+                cmd_tr += ["--eps", str(args.eps)]
+            print("[subprocess]", " ".join(cmd_tr))
+            subprocess.call(cmd_tr)
 
-    # Evaluation/testing of trained vanilla/UDR models
+            # 3.b) Immediate test
+            print(f">>> Training done — now testing {args.agent}...")
+            script_te = (Path(__file__).resolve().parent
+                         / "agentsandpolicies" / "REINFORCE"
+                         / "test_REINFORCE_AC.py")
+            cmd_te = [
+                sys.executable, str(script_te),
+                "--agent",    args.agent,
+                "--episodes", str(args.episodes),
+                "--device",   args.device
+            ]
+            if args.baseline:
+                cmd_te.append("--baseline")
+                cmd_te += ["--eps", str(args.eps)]
+            if args.render:
+                cmd_te.append("--render")
+            print("[subprocess]", " ".join(cmd_te))
+            subprocess.call(cmd_te)
+
+        elif args.agent == "PPO":
+            print(">>> Starting final PPO training...")
+            from agentsandpolicies.PPOandUDR.run_trainingPPOandUDR import main as train_main
+            train_main(seed=args.seed, use_udr=args.use_udr)
+        else:
+            sys.exit(f"Unknown agent '{args.agent}'")
+        print(f">>> {args.agent} pipeline completed.\n")
+
+    # 4) Manual testing if requested
     if args.run_testing:
-        print(">>> Starting evaluation/testing of trained models...")
-        from agentsandpolicies.PPOandUDR.run_testingPPOandUDR import run_tests as test_main
-        test_main(seed=args.seed, use_udr=args.use_udr, render=args.render)
-        print(">>> Evaluation/testing completed.\n")
+        print(f">>> Starting evaluation for {args.agent}...")
+        if args.agent in ("REINFORCE", "ActorCritic"):
+            script = (Path(__file__).resolve().parent
+                      / "agentsandpolicies" / "REINFORCE"
+                      / "test_REINFORCE_AC.py")
+            cmd = [
+                sys.executable, str(script),
+                "--agent",    args.agent,
+                "--episodes", str(args.episodes),
+                "--device",   args.device
+            ]
+            if args.baseline:
+                cmd.append("--baseline")
+                cmd += ["--eps", str(args.eps)]
+            if args.render:
+                cmd.append("--render")
+            print("[subprocess]", " ".join(cmd))
+            subprocess.call(cmd)
 
-    # Bayesian SimOpt training
+        elif args.agent == "PPO":
+            from agentsandpolicies.PPOandUDR.run_testingPPOandUDR import run_tests as test_main
+            test_main(seed=args.seed, use_udr=args.use_udr, render=args.render)
+        else:
+            sys.exit(f"Unknown agent '{args.agent}'")
+        print(f">>> {args.agent} evaluation completed.\n")
+
+    # 5) Bayesian SimOpt training
     if args.simopt_train:
         print(">>> Starting adaptive SimOpt training (Bayesian)...")
         from agentsandpolicies.PPOandSimOpt.trainSimOpt import run_simopt
         run_simopt(seed=args.seed, device=args.device)
         print(">>> Bayesian SimOpt training completed.\n")
 
-    # Bayesian SimOpt evaluation
+    # 6) Bayesian SimOpt evaluation
     if args.simopt_test:
         print(">>> Starting evaluation/testing of Bayesian SimOpt models...")
-        script_path = Path(__file__).resolve().parent \
-            / "agentsandpolicies" / "PPOandSimOpt" / "testSimOpt.py"
+        script = (Path(__file__).resolve().parent
+                  / "agentsandpolicies" / "PPOandSimOpt" / "testSimOpt.py")
         cmd = [
-            sys.executable, str(script_path),
-            "--seed", str(args.seed),
-            "--device", args.device,
+            sys.executable, str(script),
+            "--seed",     str(args.seed),
+            "--device",   args.device,
             "--episodes", str(args.episodes)
         ]
         if args.render:
@@ -143,7 +174,7 @@ def main():
         subprocess.call(cmd)
         print(">>> Bayesian SimOpt evaluation completed.\n")
 
-    # PSO-based SimOpt (train + test)
+    # 7) PSO-based SimOpt (train + test)
     if args.simopt_pso:
         print(">>> Starting PSO-based SimOpt training...")
         from agentsandpolicies.PPOandSimOpt.trainSimOptPSO import main as pso_main
@@ -151,12 +182,12 @@ def main():
         print(">>> PSO-based SimOpt training completed.\n")
 
         print(">>> Starting PSO-based SimOpt evaluation...")
-        script_path = Path(__file__).resolve().parent \
-            / "agentsandpolicies" / "PPOandSimOpt" / "testSimOpt.py"
+        script = (Path(__file__).resolve().parent
+                  / "agentsandpolicies" / "PPOandSimOpt" / "testSimOpt.py")
         cmd = [
-            sys.executable, str(script_path),
-            "--seed", str(args.seed),
-            "--device", args.device,
+            sys.executable, str(script),
+            "--seed",     str(args.seed),
+            "--device",   args.device,
             "--episodes", str(args.episodes)
         ]
         if args.render:
@@ -172,3 +203,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
