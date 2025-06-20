@@ -78,7 +78,7 @@ def run_train(
         agent.update_policy()
         episode_rewards.append(reward_tot)
 
-        if (episode + 1) % 1000 == 0:
+        if (episode + 1) % 100 == 0:
             print(f"Episode {episode + 1}: return = {reward_tot:.2f}")
 
     # --- save -------------------------------------------------------------
