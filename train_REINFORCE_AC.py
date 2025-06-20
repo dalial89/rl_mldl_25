@@ -2,7 +2,7 @@
     REINFORCE and Actor-critic algorithms
 """
 import os
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
+BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 import sys
 
@@ -101,7 +101,7 @@ def run_train(
             print(f"Episode {episode + 1}: return = {reward_tot:.2f}")
 
     # --- save -------------------------------------------------------------
-    torch.save(agent.policy.state_dict(), f"models_weights/{agent_name}_baseline_{baseline}_eps_{eps}_model.mdl")
+    torch.save(agent.policy.state_dict(), f"{BASE_DIR}/models_weights/{agent_name}_baseline_{baseline}_eps_{eps}_model.mdl")
 
     episodes = np.arange(1, len(episode_rewards) + 1)
     rewards  = np.array(episode_rewards)
