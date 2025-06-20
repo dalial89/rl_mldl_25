@@ -77,16 +77,17 @@ def main():
     if args.run_training:
         print(f">>> Starting training for {args.agent} with baseline = {args.baseline} (eps={args.eps}) (episodes={args.episodes})...")
         if args.agent in ("REINFORCE", "ActorCritic"):
-            script_tr = (Path(__file__).resolve().parent
-                         / "train_REINFORCE_AC.py")
+            script_tr = (Path(__file__).resolve().parent / "train_REINFORCE_AC.py")
             cmd_tr = [
                 sys.executable, str(script_tr),
+                "--agent",    args.agent,
                 "--episodes", str(args.episodes),
                 "--device",   args.device
             ]
             if args.baseline:
                 cmd_tr.append("--baseline")
                 cmd_tr += ["--eps", str(args.eps)]
+
             print("[subprocess]", " ".join(cmd_tr))
             subprocess.call(cmd_tr)
 
