@@ -119,7 +119,8 @@ def final_training(mu_vars, total_steps):
         rewards[step] = [avg]
         log.append(["Source-Target", step, avg])
         print(f"Step {step}, Eval: {avg:.2f}")
-
+        
+    model.save("Simopt_ppo_policy_final")
     np.save("SimOpt_results.npy", rewards)
     df = pd.DataFrame(log, columns=["Environment", "Timesteps", "Mean Reward"])
     plt.figure(figsize=(12, 8))
