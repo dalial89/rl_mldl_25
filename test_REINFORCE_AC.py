@@ -79,7 +79,7 @@ def run_test(
         "REINFORCE"      : "vanilla",
         "REINFORCE_BAVG" : "bavg",
         "REINFORCE_BVAL" : "bval",
-        "ActorCritic"    : "actorcritic",
+        "ActorCritic"    : "ac",
     }[agent_name]
     model_file = f"{prefix}_seed_{seed}_model.mdl"
     model_path = os.path.join(BASE_DIR, "models_weights", model_file)

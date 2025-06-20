@@ -114,8 +114,12 @@ def run_train(
 
             reward_tot += reward
 
+            if agent_name == "ActorCritic":
+                # one-step actor-critic: update at each transition
+                agent.update_policy()
 
-        agent.update_policy()
+        if agent_name.startswith("REINFORCE"):
+            agent.update_policy()
         episode_rewards.append(reward_tot)
 
         if (episode + 1) % 100 == 0:
@@ -134,7 +138,8 @@ def run_train(
     filename_prefix = {
         "REINFORCE"      : "vanilla",
         "REINFORCE_BAVG" : "bavg",
-        "REINFORCE_BVAL" : "bval"
+        "REINFORCE_BVAL" : "bval",
+        "ActorCritic"    : "ac",
     }[agent_name]
 
     torch.save(
