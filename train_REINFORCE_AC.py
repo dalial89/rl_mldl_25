@@ -89,10 +89,11 @@ def run_train(
 
             state, reward, done, info = env.step(action.detach().cpu().numpy())
 
-            if agent_name.lower() == "reinforce":
-                agent.store_outcome(action_prob, reward)                         
-            else:  
+            if agent_name.startswith("REINFORCE"):
+                agent.store_outcome(action_prob, reward)
+            else:
                 agent.store_outcome(prev_state, state, action_prob, reward, done)
+                        
             reward_tot += reward
 
         agent.update_policy()
