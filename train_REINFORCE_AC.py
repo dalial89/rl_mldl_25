@@ -113,7 +113,7 @@ def run_train(
        agent.policy.state_dict(),
         os.path.join(
             mw,
-            f"{agent_name}_baseline_{baseline}_eps_{eps}_model.mdl"
+            f"{agent_name}_seed_{seed}_baseline_{baseline}_eps_{eps}_model.mdl"
         )
     )
 
@@ -125,7 +125,7 @@ def run_train(
     np.savetxt(
         os.path.join(
             md,
-            f"{agent_name}_baseline_{baseline}_eps_{eps}_returns.csv"
+            f"{agent_name}_seed_{seed}_baseline_{baseline}_eps_{eps}_returns.csv"
         ),
         data,
         delimiter=",",

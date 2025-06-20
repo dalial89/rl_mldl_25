@@ -70,23 +70,14 @@ def run_test(
 
     policy = PolicyClass(obs_dim, act_dim).to(device)
 
-    model_path = Path(
-        f"models_weights/{agent_name}_baseline_{baseline}_eps_{eps}_model.mdl"
-    )
-
-    if not model_path.exists():
-        raise FileNotFoundError(
-            f"[ERROR] weights file '{model_path}' not found"
-        )
+    model_file = f"{agent_name}_seed_{seed}_baseline_{baseline}_eps_{eps}_model.mdl"
+    model_path = os.path.join(BASE_DIR, "models_weights", model_file)
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"[ERROR] weights file '{model_path}' not found")
 
     policy.load_state_dict(torch.load(model_path, map_location=device))
 
-    agent = AgentClass(
-        policy,
-        device=device,
-        baseline=baseline,
-        eps=eps
-    )
+    agent = AgentClass(policy, device=device, baseline=baseline, eps=eps)
 
     # --- evaluation loop ---------------------------------------------------
     for episode in range(n_episodes):
