@@ -83,18 +83,37 @@ def run_train(
         state = env.reset()        
         done, reward_tot = False, 0.0
 
+        
         while not done:
             action, action_prob = agent.get_action(state)
             prev_state = state
 
             state, reward, done, info = env.step(action.detach().cpu().numpy())
 
-            if agent_name.startswith("REINFORCE"):
+            # dispatch sul corretto signature di store_outcome
+            if agent_name == "REINFORCE":
+                # vanilla REINFORCE: store_outcome(self, action_log_prob, reward)
                 agent.store_outcome(action_prob, reward)
-            else:
+
+            elif agent_name == "REINFORCE_BAVG":
+                # same signature della vanilla
+                agent.store_outcome(action_prob, reward)
+
+            elif agent_name == "REINFORCE_BVAL":
+                # il tuo REINFORCE_baseline_value_net.py definisce
+                # store_outcome(self, state, action_log_prob, reward)
+                agent.store_outcome(prev_state, action_prob, reward)
+
+            elif agent_name == "ActorCritic":
+                # ActorCritic ha signature
+                # store_outcome(self, prev_state, state, action_log_prob, reward, done)
                 agent.store_outcome(prev_state, state, action_prob, reward, done)
-                        
+
+            else:
+                raise ValueError(f"Unknown agent {agent_name}")
+
             reward_tot += reward
+
 
         agent.update_policy()
         episode_rewards.append(reward_tot)
