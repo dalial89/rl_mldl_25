@@ -42,6 +42,8 @@ def parse_args():
                         help="Number of training or evaluation episodes")
     parser.add_argument("--render",   action="store_true",
                         help="Render the envs during evaluation")
+    parser.add_argument("--env", required=True, choices=["source","target"],
+                        help="Which Hopper environment to train PPO on: source or target")
     return parser.parse_args()
 
 
@@ -128,10 +130,25 @@ def main():
             subprocess.call(cmd)
 
         elif args.agent == "PPO":
-            from agentsandpolicies.PPOandUDR.run_testingPPOandUDR import run_tests as test_main
-            test_main(seed=args.seed, use_udr=args.use_udr, render=args.render)
+            # invoke your custom test_PPO.py
+            script = Path(__file__).resolve().parent / "test_PPO.py"
+            cmd = [
+                sys.executable, str(script),
+                "--env",      args.env,
+                "--seed",     str(args.seed),
+                "--episodes", str(args.episodes),
+                "--device",   args.device,
+            ]
+            if args.render:
+                cmd.append("--render")
+            if args.use_udr:
+                cmd.append("--udr")
+
+            print("[subprocess]", " ".join(cmd))
+            subprocess.call(cmd)
         else:
             sys.exit(f"Unknown agent '{args.agent}'")
+        
         print(f">>> {args.agent} evaluation completed.\n")
 
     # 5) Bayesian SimOpt training
