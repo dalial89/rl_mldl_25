@@ -59,7 +59,7 @@ class Policy(torch.nn.Module):
 
 
 class Agent(object):
-    def __init__(self, policy, device='cpu', gamma = 0.99, lr=1e-3, baseline=False): 
+    def __init__(self, policy, device='cpu', gamma = 0.99, lr=1e-3): 
         self.train_device = device
         self.policy = policy.to(self.train_device)
         self.optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
@@ -67,7 +67,6 @@ class Agent(object):
         self.gamma = gamma
         self.action_log_probs = []
         self.rewards = []
-        self.baseline = baseline
 
 
 
@@ -82,18 +81,12 @@ class Agent(object):
 
         returns = discount_rewards(rewards, self.gamma)  
 
-        if self.baseline:
-            baseline  = returns.mean()     
-            advantage = returns - baseline
-        else:
-            advantage = returns
-
         T = returns.size(0)
         discounts = (self.gamma ** torch.arange(T, 
                           dtype=returns.dtype, 
                           device=self.train_device))
 
-        policy_loss = -(discounts*action_log_probs * advantage).sum()
+        policy_loss = -(discounts*action_log_probs * returns).sum()
 
         self.optimizer.zero_grad()
         policy_loss.backward()

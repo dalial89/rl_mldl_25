@@ -4,7 +4,7 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 import importlib
 import sys
-from pathlib import Path
+import argparse
 
 import torch
 import gym
@@ -14,16 +14,23 @@ from env.custom_hopper import *
 
 
 def import_agent_module(agent_name: str):
+    # Map flag -> module path
+    pkg = {
+        "REINFORCE"      : "REINFORCE.REINFORCE",
+        "REINFORCE_BAVG" : "REINFORCE.REINFORCE_baseline_avg",
+        "REINFORCE_BVAL" : "REINFORCE.REINFORCE_baseline_value_net",
+        "ActorCritic"    : "ActorCritic.ActorCritic",
+    }.get(agent_name)
+    if pkg is None:
+        raise ValueError(f"[ERROR] agent '{agent_name}' not recognised")
     try:
-        module = importlib.import_module(f"agentsandpolicies.{agent_name}.{agent_name}")
+        module = importlib.import_module(f"agentsandpolicies.{pkg}")
     except ModuleNotFoundError as exc:
-        print(f"[ERROR] agent '{agent_name}' not found!", file=sys.stderr)
+        print(f"[ERROR] module '{pkg}' not found!", file=sys.stderr)
         raise exc
-
+    # Qui restituiamo davvero Policy e Agent
     if not all(hasattr(module, cls) for cls in ("Policy", "Agent")):
-        raise AttributeError(
-            f"[ERROR] {agent_name} should expose 'Policy' and 'Agent' classes"
-        )
+        raise AttributeError(f"[ERROR] {pkg} deve esporre Policy e Agent")
     return module.Policy, module.Agent
 
 
@@ -32,8 +39,6 @@ def run_test(
     n_episodes: int,
     device: str,
     render:bool,
-    baseline:bool,
-    eps:float,
     seed: int
 ):
     
@@ -70,14 +75,20 @@ def run_test(
 
     policy = PolicyClass(obs_dim, act_dim).to(device)
 
-    model_file = f"{agent_name}_seed_{seed}_baseline_{baseline}_eps_{eps}_model.mdl"
+    prefix = {
+        "REINFORCE"      : "vanilla",
+        "REINFORCE_BAVG" : "bavg",
+        "REINFORCE_BVAL" : "bval",
+        "ActorCritic"    : "actorcritic",
+    }[agent_name]
+    model_file = f"{prefix}_seed_{seed}_model.mdl"
     model_path = os.path.join(BASE_DIR, "models_weights", model_file)
     if not os.path.exists(model_path):
-        raise FileNotFoundError(f"[ERROR] weights file '{model_path}' not found")
+        raise FileNotFoundError(f"[ERROR] file of weights '{model_path}' not found!")
 
     policy.load_state_dict(torch.load(model_path, map_location=device))
 
-    agent = AgentClass(policy, device=device, baseline=baseline, eps=eps)
+    agent = AgentClass(policy, device=device)
 
     # --- evaluation loop ---------------------------------------------------
     returns = []
@@ -114,28 +125,19 @@ def run_test(
 
 
 if __name__ == "__main__":
-    import argparse
 
-    p = argparse.ArgumentParser(
-        description="Test REINFORCE/ActorCritic on Hopper"
-    )
-    p.add_argument("--seed", type=int, default=42,
-               help="Random seed for reproducibility")
+    p = argparse.ArgumentParser(description="Test REINFORCE/ActorCritic on Hopper")
+    p.add_argument("--seed",     type=int, required=True,
+                   help="Random seed for reproducibility")
     p.add_argument("--agent",    required=True,
-                   choices=["REINFORCE","ActorCritic"],
-                   help="Which agent to test")
-    p.add_argument("--episodes", type=int,    default=10,
-                   help="Number of evaluation episodes")
-    p.add_argument("--device",   choices=["cpu","cuda"],
-                   default="cpu",
-                   help="Device for evaluation")
-    p.add_argument("--baseline", action="store_true",
-                   help="Whether the trained model used a mean–std baseline")
-    p.add_argument("--eps",      type=float,
-                   default=1e-8,
-                   help="Epsilon that was used for baseline normalization")
+                   choices=["REINFORCE","REINFORCE_BAVG","REINFORCE_BVAL","ActorCritic"],
+                   help="type agent to test")
+    p.add_argument("--episodes", type=int, default=10,
+                   help="number of episodes of test")
+    p.add_argument("--device",   choices=["cpu","cuda"], default="cpu",
+                   help="Device")
     p.add_argument("--render",   action="store_true",
-                   help="Render the environment during testing")
+                   help="want to render")
     args = p.parse_args()
 
     run_test(
@@ -143,8 +145,8 @@ if __name__ == "__main__":
         n_episodes = args.episodes,
         device     = args.device,
         render     = args.render,
-        baseline   = args.baseline,
-        eps        = args.eps,
-        seed=args.seed
+        seed       = args.seed
     )
+
+
 

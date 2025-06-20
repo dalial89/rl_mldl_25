@@ -24,9 +24,10 @@ def parse_args():
                         help="Run PSO-based SimOpt training and evaluation")
 
     # Common options
-    parser.add_argument("--agent",    choices=["REINFORCE","ActorCritic","PPO"],
+    parser.add_argument("--agent",
+                        choices=["REINFORCE","REINFORCE_BAVG","REINFORCE_BVAL","ActorCritic","PPO"],
                         default="REINFORCE",
-                        help="Which agent to train/test")
+                        help="Which agent/variant to train/test")
     parser.add_argument("--use-udr",  action="store_true",
                         help="Enable UDR when training or testing (PPO)")
     parser.add_argument("--baseline", action="store_true",
@@ -74,23 +75,19 @@ def main():
         print(">>> UDR mass-randomization sweep completed.\n")
 
     # 3) Training 
+    # excerpt from main.py
     if args.run_training:
-        print(f">>> Starting training for {args.agent} with baseline = {args.baseline} (eps={args.eps}) (episodes={args.episodes})...")
-        if args.agent in ("REINFORCE", "ActorCritic"):
-            script_tr = (Path(__file__).resolve().parent / "train_REINFORCE_AC.py")
-            cmd_tr = [
-                sys.executable, str(script_tr),
-                "--seed",     str(args.seed),
+        if args.agent in ("REINFORCE","REINFORCE_BAVG","REINFORCE_BVAL","ActorCritic"):
+            script = Path(__file__).parent / "train_REINFORCE_AC.py"
+            cmd = [
+                sys.executable, str(script),
                 "--agent",    args.agent,
                 "--episodes", str(args.episodes),
-                "--device",   args.device
+                "--device",   args.device,
+                "--seed",     str(args.seed)
             ]
-            if args.baseline:
-                cmd_tr.append("--baseline")
-                cmd_tr += ["--eps", str(args.eps)]
-
-            print("[subprocess]", " ".join(cmd_tr))
-            subprocess.call(cmd_tr)
+            print("[subprocess]", " ".join(cmd))
+            subprocess.call(cmd)
 
         elif args.agent == "PPO":
             print(">>> Starting final PPO training...")

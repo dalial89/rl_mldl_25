@@ -65,11 +65,8 @@ class Agent(object):
         self.optimizer = torch.optim.Adam(policy.parameters(), lr=1e-3)
 
         self.gamma = 0.99
-        self.states = []
-        self.next_states = []
         self.action_log_probs = []
         self.rewards = []
-        self.done = []
 
 
     def update_policy(self):
@@ -86,7 +83,7 @@ class Agent(object):
                           dtype=returns.dtype, 
                           device=self.train_device))
 
-        policy_loss = -(discounts * action_log_probs * advantage).mean()
+        policy_loss = -(discounts * action_log_probs * advantage).sum()
 
         self.optimizer.zero_grad()
         policy_loss.backward()
@@ -116,9 +113,6 @@ class Agent(object):
             return action, action_log_prob
 
 
-    def store_outcome(self, state, next_state, action_log_prob, reward, done):
-        self.states.append(torch.from_numpy(state).float())
-        self.next_states.append(torch.from_numpy(next_state).float())
+    def store_outcome(self, action_log_prob, reward):
         self.action_log_probs.append(action_log_prob)
         self.rewards.append(torch.Tensor([reward]))
-        self.done.append(done)

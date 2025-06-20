@@ -16,28 +16,32 @@ import random
 from env.custom_hopper import *  
 
 def import_agent_module(agent_name: str):
-    """
-    Dynamically imports agents
-    """
-    try:
-        module = importlib.import_module(f"agentsandpolicies.{agent_name}.{agent_name}")
-    except ModuleNotFoundError as exc:
-        print(f"[ERROR] agent {agent_name} not found!", file=sys.stderr)
-        raise exc
+    mapping = {
+        "REINFORCE":      "REINFORCE.REINFORCE",
+        "REINFORCE_BAVG": "REINFORCE.REINFORCE_baseline_avg",
+        "REINFORCE_BVAL": "REINFORCE.REINFORCE_baseline_value_net",
+        "ActorCritic":    "ActorCritic.ActorCritic",
+    }
+    pkg = mapping.get(agent_name)
+    if pkg is None:
+        raise ValueError(f"[ERROR] unknown agent '{agent_name}'")
 
-    # check if you have policy and agent classes
+    try:
+        module = importlib.import_module(f"agentsandpolicies.{pkg}")
+    except ModuleNotFoundError as exc:
+        print(f"[ERROR] module '{pkg}' not found!", file=sys.stderr)
+        raise
+
     if not all(hasattr(module, cls) for cls in ("Policy", "Agent")):
-        raise AttributeError(
-            f"[ERROR] {agent_name} should contain 'Policy' and 'Agent' classes!"
-        )
+        raise AttributeError(f"[ERROR] '{pkg}' must define Policy and Agent")
+
     return module.Policy, module.Agent
+
 
 def run_train(
     agent_name: str,
     n_episodes: int,
     device: str,
-    baseline: bool,
-    eps: float,
     seed: int
 ):
     # --- import environment ------------------------------------------------
@@ -70,10 +74,8 @@ def run_train(
     act_dim  = env.action_space.shape[-1]
 
     policy = PolicyClass(obs_dim, act_dim)
-    agent = AgentClass(policy,
-                   device=device,
-                   baseline=baseline,
-                   eps=eps)
+    agent = AgentClass(policy, device=device)
+
 
     # --- training loop -----------------------------------------------------
     episode_rewards = []
@@ -109,12 +111,15 @@ def run_train(
     if not os.path.isdir(md):
         os.makedirs(md)
 
+    filename_prefix = {
+        "REINFORCE"      : "vanilla",
+        "REINFORCE_BAVG" : "bavg",
+        "REINFORCE_BVAL" : "bval"
+    }[agent_name]
+
     torch.save(
-       agent.policy.state_dict(),
-        os.path.join(
-            mw,
-            f"{agent_name}_seed_{seed}_baseline_{baseline}_eps_{eps}_model.mdl"
-        )
+        agent.policy.state_dict(),
+        os.path.join(mw, f"{filename_prefix}_seed_{seed}_model.mdl")
     )
 
 
@@ -125,7 +130,7 @@ def run_train(
     np.savetxt(
         os.path.join(
             md,
-            f"{agent_name}_seed_{seed}_baseline_{baseline}_eps_{eps}_returns.csv"
+            f"{filename_prefix}_seed_{seed}_returns.csv"
         ),
         data,
         delimiter=",",
@@ -134,34 +139,24 @@ def run_train(
     )
     
 if __name__ == "__main__":
-
-
     p = argparse.ArgumentParser(
-        description="Train REINFORCE/ActorCritic on Hopper"
+        description="Train REINFORCE variants or ActorCritic on Hopper"
     )
-    p.add_argument("--seed", type=int, required=True,
-               help="Random seed for reproducibility")
+    p.add_argument("--seed",     type=int, required=True,
+                   help="Random seed for reproducibility")
     p.add_argument("--agent",    required=True,
-                   choices=["REINFORCE","ActorCritic"],
-                   help="Which agent to train")
+                   choices=["REINFORCE", "REINFORCE_BAVG", "REINFORCE_BVAL", "ActorCritic"],
+                   help="Which algorithm/variant to train")
     p.add_argument("--episodes", type=int, required=True,
                    help="Number of training episodes")
-    p.add_argument("--device",   choices=["cpu","cuda"],
-                   default="cpu",
-                   help="Device for training")
-    p.add_argument("--baseline", action="store_true",
-                   help="Use mean–std baseline")
-    p.add_argument("--eps",      type=float,
-                   default=1e-8,
-                   help="Epsilon for baseline")
+    p.add_argument("--device",   choices=["cpu","cuda"], default="cpu",
+                   help="Compute device")
     args = p.parse_args()
 
     run_train(
         agent_name = args.agent,
         n_episodes = args.episodes,
         device     = args.device,
-        baseline   = args.baseline,
-        eps        = args.eps,
-        seed=args.seed
+        seed       = args.seed
     )
 
