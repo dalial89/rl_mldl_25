@@ -90,9 +90,19 @@ def main():
             subprocess.call(cmd)
 
         elif args.agent == "PPO":
-            print(">>> Starting final PPO training...")
-            from agentsandpolicies.PPOandUDR.run_trainingPPOandUDR import main as train_main
-            train_main(seed=args.seed, use_udr=args.use_udr)
+            # call the new train_PPO.py script
+            script = Path(__file__).parent / "train_PPO.py"
+            cmd = [
+                sys.executable, str(script),
+                "--env",      args.use_udr and "source" or args.env,  # or however you pass source/target
+                "--seed",     str(args.seed),
+                "--timesteps",str(args.episodes),
+                "--device",   args.device,
+            ]
+            if args.use_udr:
+                cmd.append("--udr")
+            print("[subprocess]", " ".join(cmd))
+            subprocess.call(cmd)
         else:
             sys.exit(f"Unknown agent '{args.agent}'")
 
