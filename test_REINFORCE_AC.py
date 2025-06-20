@@ -114,7 +114,7 @@ def run_test(
     np.savetxt(
         os.path.join(
             md,
-            f"{agent_name}_seed_{seed}_baseline_{baseline}_eps_{eps}_test_returns.csv"
+            f"{agent_name}_seed_{seed}_test_returns.csv"
         ),
         data,
         delimiter=",",
