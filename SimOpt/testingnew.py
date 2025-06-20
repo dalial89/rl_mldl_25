@@ -65,7 +65,7 @@ def main():
     # Configurations to evaluate
     configs = [
         ('Simopt_ppo_policy_final', 'CustomHopper-source-v0', 42, True, 'source→source'),
-        ('Simopt_ppo_policy_final', 'CustomHopper-target-v0', 42, True, 'source→target'),
+        ('Simopt_ppo_policy_final', 'CustomHopper-source-v0', 42, True, 'source→target'),
         ('Simopt_ppo_policy_final', 'CustomHopper-target-v0', 42, True, 'target→target')
     ]
 
