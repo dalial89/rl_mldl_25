@@ -33,6 +33,16 @@ def run_test(
     eps:float,
     seed: int
 ):
+    
+    # --- environment -------------------------------------------------------
+    env = gym.make("CustomHopper-source-v0")
+    # env = gym.make("CustomHopper-target-v0")
+
+    print("Action space:", env.action_space)
+    print("State space :", env.observation_space)
+    print("Dynamics parameters:", env.get_parameters())
+
+
     # --- set all seeds -----------------------------------------------------
     # 1) Python
     random.seed(seed)
@@ -48,13 +58,6 @@ def run_test(
     except AttributeError:
         env.reset(seed=seed)
 
-    # --- environment -------------------------------------------------------
-    env = gym.make("CustomHopper-source-v0")
-    # env = gym.make("CustomHopper-target-v0")
-
-    print("Action space:", env.action_space)
-    print("State space :", env.observation_space)
-    print("Dynamics parameters:", env.get_parameters())
 
     # --- import agent ------------------------------------------------------
     PolicyClass, AgentClass = import_agent_module(agent_name)
