@@ -59,7 +59,7 @@ class Policy(torch.nn.Module):
 
 
 class Agent(object):
-    def __init__(self, policy, device='cpu', gamma = 0.99, lr=1e-3, baseline=False, eps=1e-8): 
+    def __init__(self, policy, device='cpu', gamma = 0.99, lr=1e-3, baseline=False): 
         self.train_device = device
         self.policy = policy.to(self.train_device)
         self.optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
@@ -68,7 +68,6 @@ class Agent(object):
         self.action_log_probs = []
         self.rewards = []
         self.baseline = baseline
-        self.eps = eps
 
 
 
