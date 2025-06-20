@@ -1,4 +1,7 @@
 """Test an RL agent on the OpenAI Gym Hopper environment"""
+import os
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
 import importlib
 import sys
 from pathlib import Path

@@ -1,6 +1,9 @@
 """Train an RL agent on the OpenAI Gym Hopper environment using
     REINFORCE and Actor-critic algorithms
 """
+import os
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
 import sys
 
 import numpy as np
