@@ -53,7 +53,6 @@ class Policy(torch.nn.Module):
 
     def forward(self, x):
         #Returns both the action distribution and the state value.
-        #x : torch.Tensor of shape (batch, state_space) or (state_space,)
         """
             Actor
         """
