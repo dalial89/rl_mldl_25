@@ -3,7 +3,9 @@ import torch
 import torch.nn.functional as F
 from torch.distributions import Normal
 
-
+# ---------------------------------------------------------------------------
+# Monte-Carlo return  G_t = Σ_{k=t+1}^{T} γ^{k-t-1} R_k      ← eq. (first line)
+# ---------------------------------------------------------------------------
 def discount_rewards(r, gamma):
     discounted_r = torch.zeros_like(r)
     running_add = 0
@@ -12,7 +14,9 @@ def discount_rewards(r, gamma):
         discounted_r[t] = running_add
     return discounted_r
 
-
+# ---------------------------------------------------------------------------
+#  π(a|s,θ)  and  v̂(s,w)
+# ---------------------------------------------------------------------------
 class Policy(torch.nn.Module):
     def __init__(self, state_space, action_space):
         super().__init__()
@@ -75,67 +79,63 @@ class Policy(torch.nn.Module):
         return normal_dist, value
 
 
-class Agent(object):
-    def __init__(self, policy, device='cpu', entropy_coef=0.01, max_grad_norm=None):
+class Agent:
+    def __init__(self, policy, device='cpu', max_grad_norm=None):
         self.train_device = device
-        self.policy = policy.to(self.train_device)
+        self.policy = policy.to(device)
 
-        actor_params  = [p for n, p in self.policy.named_parameters()
-                         if "actor" in n or "sigma" in n]
-        critic_params = [p for n, p in self.policy.named_parameters()
-                         if "critic" in n or "value"  in n]
+        actor_params  = [p for n,p in self.policy.named_parameters()
+                         if n.startswith(("fc1_actor","fc2_actor","fc3_actor","sigma"))]
+        critic_params = [p for n,p in self.policy.named_parameters()
+                         if n.startswith(("fc1_critic","fc2_critic","fc3_value"))]
 
-        self.policy_optimizer = torch.optim.Adam(actor_params,  lr=1e-3)
-        self.value_optimizer  = torch.optim.Adam(critic_params, lr=1e-3)
+        self.opt_theta = torch.optim.Adam(actor_params , lr=3e-4)  # α^θ
+        self.opt_w     = torch.optim.Adam(critic_params, lr=1e-3)  # α^w
 
-        self.entropy_coef  = entropy_coef
         self.max_grad_norm = max_grad_norm
-
         self.gamma = 0.99
-        self.states, self.next_states = [], []
-        self.action_log_probs, self.rewards, self.done = [], [], []
-        self.entropies = []
+
+        self.states, self.action_log_probs, self.rewards = [], [], []
 
 
     def update_policy(self):
         states   = torch.stack(self.states).to(self.train_device)
-        log_p    = torch.stack(self.action_log_probs).to(self.train_device)
-        entrop   = torch.stack(self.entropies).to(self.train_device)
+        logps    = torch.stack(self.action_log_probs).to(self.train_device)
         rewards  = torch.stack(self.rewards).to(self.train_device).squeeze(-1)
 
-        returns = discount_rewards(rewards, self.gamma)
+        returns = discount_rewards(rewards, self.gamma) # G_t
 
-        _, state_values = self.policy(states)        
-        value_error     = returns - state_values 
+        # δ_t = G_t − v̂(S_t,w)
+        with torch.no_grad():
+            _, state_values = self.policy(states)     
 
-        T = returns.size(0)
-        discounts = self.gamma ** torch.arange(T, dtype=returns.dtype,
-                                            device=self.train_device)
-        
-        policy_loss = -(discounts * value_error.detach() * log_p).mean()
+        delta     = returns - state_values 
 
-        entropy_loss = -entrop.mean()
-        actor_loss   = policy_loss + self.entropy_coef * entropy_loss
+        #Critic:  w ← w + α^w δ ∇_w v̂(S_t,w)
+        _, v_pred = self.policy(states)                                 
+        value_loss = 0.5 * (returns - v_pred).pow(2).mean()
 
-        self.policy_optimizer.zero_grad()
-        actor_loss.backward()
-        if self.max_grad_norm:
-            torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
-        self.policy_optimizer.step()
-
-        value_loss = 0.5 * value_error.pow(2).mean()
-        self.value_optimizer.zero_grad()
+        self.opt_w.zero_grad()
         value_loss.backward()
         if self.max_grad_norm:
             torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
-        self.value_optimizer.step()
+        self.opt_w.step()
+
+        #Actor:  θ ← θ + α^θ γ^t δ ∇_θ logπ(A_t|S_t,θ)
+        T = returns.size(0)
+        discounts = self.gamma ** torch.arange(T, dtype=returns.dtype,
+                                               device=self.train_device)
+        actor_loss = -(discounts * delta.detach() * logps).mean()
+
+        self.opt_theta.zero_grad()
+        actor_loss.backward()
+        if self.max_grad_norm:
+            torch.nn.utils.clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
+        self.opt_theta.step()
 
         self.states.clear()
-        self.next_states.clear()
         self.action_log_probs.clear()
         self.rewards.clear()
-        self.done.clear()
-        self.entropies.clear()
 
 
         return        
@@ -155,17 +155,11 @@ class Agent(object):
 
             # Compute Log probability of the action [ log(p(a[0] AND a[1] AND a[2])) = log(p(a[0])*p(a[1])*p(a[2])) = log(p(a[0])) + log(p(a[1])) + log(p(a[2])) ]
             action_log_prob = normal_dist.log_prob(action).sum()
-            entropy  = normal_dist.entropy().sum()
 
-            return action, (action_log_prob, entropy)
+            return action, action_log_prob
 
 
-    def store_outcome(self, state, next_state, log_ent_tuple, reward, done):
-        action_log_prob, entropy = log_ent_tuple
-
+    def store_outcome(self, state, action_log_prob, reward):
         self.states.append(torch.from_numpy(state).float())
-        self.next_states.append(torch.from_numpy(next_state).float())
         self.action_log_probs.append(action_log_prob)
-        self.entropies.append(entropy)
         self.rewards.append(torch.Tensor([reward]))
-        self.done.append(done)

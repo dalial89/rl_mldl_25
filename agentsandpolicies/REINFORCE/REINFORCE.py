@@ -84,7 +84,7 @@ class Agent(object):
         returns = discount_rewards(rewards, self.gamma)  
 
         if self.baseline:
-            baseline  = self.eps     
+            baseline  = returns.mean()     
             advantage = returns - baseline
         else:
             advantage = returns
