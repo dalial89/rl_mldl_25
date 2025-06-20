@@ -129,6 +129,7 @@ if __name__ == "__main__":
         device     = args.device,
         render     = args.render,
         baseline   = args.baseline,
-        eps        = args.eps
+        eps        = args.eps,
+        seed=args.seed
     )
 

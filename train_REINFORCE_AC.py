@@ -139,6 +139,7 @@ if __name__ == "__main__":
         n_episodes = args.episodes,
         device     = args.device,
         baseline   = args.baseline,
-        eps        = args.eps
+        eps        = args.eps,
+        seed=args.seed
     )
 
