@@ -99,7 +99,7 @@ def main():
     # 4) Manual testing if requested
     if args.run_testing:
         print(f">>> Starting evaluation for {args.agent}...")
-        if args.agent in ("REINFORCE", "ActorCritic"):
+        if args.agent.startswith("REINFORCE") or args.agent == "ActorCritic":
             script = (Path(__file__).resolve().parent
                       / "test_REINFORCE_AC.py")
             cmd = [
