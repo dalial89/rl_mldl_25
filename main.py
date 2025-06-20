@@ -80,6 +80,7 @@ def main():
             script_tr = (Path(__file__).resolve().parent / "train_REINFORCE_AC.py")
             cmd_tr = [
                 sys.executable, str(script_tr),
+                "--seed",     str(args.seed),
                 "--agent",    args.agent,
                 "--episodes", str(args.episodes),
                 "--device",   args.device
@@ -106,6 +107,7 @@ def main():
                       / "test_REINFORCE_AC.py")
             cmd = [
                 sys.executable, str(script),
+                "--seed",     str(args.seed),
                 "--agent",    args.agent,
                 "--episodes", str(args.episodes),
                 "--device",   args.device

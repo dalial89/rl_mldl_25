@@ -9,6 +9,7 @@ import argparse
 
 import torch
 import gym
+import random
 
 from env.custom_hopper import *  
 
@@ -34,8 +35,24 @@ def run_train(
     n_episodes: int,
     device: str,
     baseline: bool,
-    eps: float
+    eps: float,
+    seed: int
 ):
+    # --- set all seeds -----------------------------------------------------
+    # 1) Python
+    random.seed(seed)
+    # 2) NumPy
+    np.random.seed(seed)
+    # 3) PyTorch
+    torch.manual_seed(seed)
+    if device.startswith("cuda"):
+        torch.cuda.manual_seed_all(seed)
+    # 4) Gym
+    try:
+        env.seed(seed)
+    except AttributeError:
+        env.reset(seed=seed)
+
 
     # --- import environment ------------------------------------------------
     env = gym.make("CustomHopper-source-v0")
@@ -100,6 +117,8 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(
         description="Train REINFORCE/ActorCritic on Hopper"
     )
+    p.add_argument("--seed", type=int, required=True,
+               help="Random seed for reproducibility")
     p.add_argument("--agent",    required=True,
                    choices=["REINFORCE","ActorCritic"],
                    help="Which agent to train")
