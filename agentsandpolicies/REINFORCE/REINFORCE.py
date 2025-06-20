@@ -86,7 +86,12 @@ class Agent(object):
         if self.baseline:
             returns = (returns - returns.mean()) / (returns.std() + self.eps)
 
-        policy_loss = -(action_log_probs * returns).mean() 
+        T = returns.size(0)
+        discounts = (self.gamma ** torch.arange(T, 
+                          dtype=returns.dtype, 
+                          device=self.train_device))
+
+        policy_loss = -(discounts*action_log_probs * returns).sum()
 
         self.optimizer.zero_grad()
         policy_loss.backward()
