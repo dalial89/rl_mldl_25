@@ -74,11 +74,10 @@ def main():
         udr_main()
         print(">>> UDR mass-randomization sweep completed.\n")
 
-    # 3) Training (and automatic test for REINFORCE/ActorCritic)
+    # 3) Training 
     if args.run_training:
-        print(f">>> Starting training for {args.agent} (episodes={args.episodes})...")
+        print(f">>> Starting training for {args.agent} with baseline = {args.baseline} (eps={args.eps}) (episodes={args.episodes})...")
         if args.agent in ("REINFORCE", "ActorCritic"):
-            # 3.a) Train
             script_tr = (Path(__file__).resolve().parent
                          / "agentsandpolicies" / "REINFORCE"
                          / "train_REINFORCE_AC.py")
@@ -92,25 +91,6 @@ def main():
                 cmd_tr += ["--eps", str(args.eps)]
             print("[subprocess]", " ".join(cmd_tr))
             subprocess.call(cmd_tr)
-
-            # 3.b) Immediate test
-            print(f">>> Training done — now testing {args.agent}...")
-            script_te = (Path(__file__).resolve().parent
-                         / "agentsandpolicies" / "REINFORCE"
-                         / "test_REINFORCE_AC.py")
-            cmd_te = [
-                sys.executable, str(script_te),
-                "--agent",    args.agent,
-                "--episodes", str(args.episodes),
-                "--device",   args.device
-            ]
-            if args.baseline:
-                cmd_te.append("--baseline")
-                cmd_te += ["--eps", str(args.eps)]
-            if args.render:
-                cmd_te.append("--render")
-            print("[subprocess]", " ".join(cmd_te))
-            subprocess.call(cmd_te)
 
         elif args.agent == "PPO":
             print(">>> Starting final PPO training...")
