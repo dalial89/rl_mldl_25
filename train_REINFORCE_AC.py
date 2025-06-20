@@ -3,7 +3,6 @@
 """
 import os
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
-
 import sys
 
 import numpy as np
@@ -101,17 +100,38 @@ def run_train(
             print(f"Episode {episode + 1}: return = {reward_tot:.2f}")
 
     # --- save -------------------------------------------------------------
-    torch.save(agent.policy.state_dict(), f"{BASE_DIR}/models_weights/{agent_name}_baseline_{baseline}_eps_{eps}_model.mdl")
+
+
+    mw = os.path.join(BASE_DIR, "models_weights")
+    md = os.path.join(BASE_DIR, "models_data")
+    if not os.path.isdir(mw):
+        os.makedirs(mw)
+    if not os.path.isdir(md):
+        os.makedirs(md)
+
+    torch.save(
+       agent.policy.state_dict(),
+        os.path.join(
+            mw,
+            f"{agent_name}_baseline_{baseline}_eps_{eps}_model.mdl"
+        )
+    )
+
 
     episodes = np.arange(1, len(episode_rewards) + 1)
     rewards  = np.array(episode_rewards)
 
     data = np.column_stack((episodes, rewards))
-    np.savetxt(f"models_data/{agent_name}_baseline_{baseline}_eps_{eps}_returns.csv",
-           data,
-           delimiter=",",
-           header="episode,return",
-           comments="")
+    np.savetxt(
+        os.path.join(
+            md,
+            f"{agent_name}_baseline_{baseline}_eps_{eps}_returns.csv"
+        ),
+        data,
+        delimiter=",",
+        header="episode,return",
+        comments=""
+    )
     
 if __name__ == "__main__":
 
