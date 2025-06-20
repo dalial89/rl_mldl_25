@@ -79,7 +79,6 @@ def main():
         print(f">>> Starting training for {args.agent} with baseline = {args.baseline} (eps={args.eps}) (episodes={args.episodes})...")
         if args.agent in ("REINFORCE", "ActorCritic"):
             script_tr = (Path(__file__).resolve().parent
-                         / "agentsandpolicies" / "REINFORCE"
                          / "train_REINFORCE_AC.py")
             cmd_tr = [
                 sys.executable, str(script_tr),
@@ -105,7 +104,6 @@ def main():
         print(f">>> Starting evaluation for {args.agent}...")
         if args.agent in ("REINFORCE", "ActorCritic"):
             script = (Path(__file__).resolve().parent
-                      / "agentsandpolicies" / "REINFORCE"
                       / "test_REINFORCE_AC.py")
             cmd = [
                 sys.executable, str(script),
