@@ -84,14 +84,17 @@ class Agent(object):
         returns = discount_rewards(rewards, self.gamma)  
 
         if self.baseline:
-            returns = (returns - returns.mean()) / (returns.std() + self.eps)
+            baseline  = self.eps     
+            advantage = returns - baseline
+        else:
+            advantage = returns
 
         T = returns.size(0)
         discounts = (self.gamma ** torch.arange(T, 
                           dtype=returns.dtype, 
                           device=self.train_device))
 
-        policy_loss = -(discounts*action_log_probs * returns).sum()
+        policy_loss = -(discounts*action_log_probs * advantage).sum()
 
         self.optimizer.zero_grad()
         policy_loss.backward()
