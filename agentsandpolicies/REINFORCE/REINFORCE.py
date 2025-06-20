@@ -86,7 +86,7 @@ class Agent(object):
         if self.baseline:
             returns = (returns - returns.mean()) / (returns.std() + self.eps)
 
-        policy_loss = -(action_log_probs * returns).sum() 
+        policy_loss = -(action_log_probs * returns).mean() 
 
         self.optimizer.zero_grad()
         policy_loss.backward()
