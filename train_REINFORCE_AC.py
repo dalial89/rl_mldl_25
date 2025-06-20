@@ -5,6 +5,7 @@ import sys
 
 import numpy as np
 import importlib
+import argparse
 
 import torch
 import gym
@@ -93,4 +94,32 @@ def run_train(
            header="episode,return",
            comments="")
     
+if __name__ == "__main__":
+
+
+    p = argparse.ArgumentParser(
+        description="Train REINFORCE/ActorCritic on Hopper"
+    )
+    p.add_argument("--agent",    required=True,
+                   choices=["REINFORCE","ActorCritic"],
+                   help="Which agent to train")
+    p.add_argument("--episodes", type=int, required=True,
+                   help="Number of training episodes")
+    p.add_argument("--device",   choices=["cpu","cuda"],
+                   default="cpu",
+                   help="Device for training")
+    p.add_argument("--baseline", action="store_true",
+                   help="Use mean–std baseline")
+    p.add_argument("--eps",      type=float,
+                   default=1e-8,
+                   help="Epsilon for baseline")
+    args = p.parse_args()
+
+    run_train(
+        agent_name = args.agent,
+        n_episodes = args.episodes,
+        device     = args.device,
+        baseline   = args.baseline,
+        eps        = args.eps
+    )
 

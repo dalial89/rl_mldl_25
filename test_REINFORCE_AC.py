@@ -81,3 +81,36 @@ def run_test(
             test_reward += reward
 
         print(f"Episode: {episode} | Return: {test_reward:.2f}")
+
+if __name__ == "__main__":
+    import argparse
+
+    p = argparse.ArgumentParser(
+        description="Test REINFORCE/ActorCritic on Hopper"
+    )
+    p.add_argument("--agent",    required=True,
+                   choices=["REINFORCE","ActorCritic"],
+                   help="Which agent to test")
+    p.add_argument("--episodes", type=int,    default=10,
+                   help="Number of evaluation episodes")
+    p.add_argument("--device",   choices=["cpu","cuda"],
+                   default="cpu",
+                   help="Device for evaluation")
+    p.add_argument("--baseline", action="store_true",
+                   help="Whether the trained model used a mean–std baseline")
+    p.add_argument("--eps",      type=float,
+                   default=1e-8,
+                   help="Epsilon that was used for baseline normalization")
+    p.add_argument("--render",   action="store_true",
+                   help="Render the environment during testing")
+    args = p.parse_args()
+
+    run_test(
+        agent_name = args.agent,
+        n_episodes = args.episodes,
+        device     = args.device,
+        render     = args.render,
+        baseline   = args.baseline,
+        eps        = args.eps
+    )
+
