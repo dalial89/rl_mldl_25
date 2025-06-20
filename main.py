@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 import subprocess
 import sys
@@ -97,7 +96,6 @@ def main():
             train_main(seed=args.seed, use_udr=args.use_udr)
         else:
             sys.exit(f"Unknown agent '{args.agent}'")
-        print(f">>> {args.agent} pipeline completed.\n")
 
     # 4) Manual testing if requested
     if args.run_testing:
