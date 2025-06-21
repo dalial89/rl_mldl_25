@@ -7,22 +7,20 @@ import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.utils import get_linear_fn
-from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 from stable_baselines3.common.monitor import Monitor
 
 from env.custom_hopper import *
 
 # 1) Utility to create a seeded, normalized VecEnv
 def make_env(env_id: str, seed: int):
-    def _init():
-        env = Monitor(gym.make(env_id), filename=None)
-        env.seed(seed)
-        env.action_space.seed(seed)
-        env.observation_space.seed(seed)
-        env.reset()
-        return env
-    vec = DummyVecEnv([_init])
-    return VecNormalize(vec, norm_obs=True, norm_reward=True)
+    env = Monitor(gym.make(env_id), filename=None)
+    env.seed(seed)
+    env.action_space.seed(seed)
+    env.observation_space.seed(seed)
+    env.reset()
+    return env
+
+
 
 
 def main():
@@ -45,13 +43,9 @@ def main():
     param_grid = {
         "n_steps":       [2048, 4096, 8192],
         "batch_size":    [32, 128],
-        "gae_lambda":    [0.8, 0.9],
         "gamma":         [0.95, 0.99],
-        "n_epochs":      [10, 20],
-        "clip_range":    [0.2],
-        "ent_coef":      [0.0, 0.005],
-        "vf_coef":       [0.5, 1.0],
-        "max_grad_norm": [0.5, 1.0],
+        "learning_rate": [lr_schedule, 1e-3, 1e-6]
+
     }
 
     # 5) Prepare combinations
@@ -82,27 +76,14 @@ def main():
             verbose=0,
             n_steps=hp["n_steps"],
             batch_size=hp["batch_size"],
-            gae_lambda=hp["gae_lambda"],
             gamma=hp["gamma"],
-            n_epochs=hp["n_epochs"],
-            clip_range=hp["clip_range"],
-            ent_coef=hp["ent_coef"],
-            vf_coef=hp["vf_coef"],
-            max_grad_norm=hp["max_grad_norm"],
-            learning_rate=lr_schedule
+            learning_rate=hp["learning_rate"]
         )
 
         # 9) Train
         model.learn(total_timesteps=200_000)
 
-        # 10) Freeze VecNormalize stats & align eval
-        train_vec.training   = False
-        eval_vec.training    = False
-        eval_vec.obs_rms     = train_vec.obs_rms
-        eval_vec.ret_rms     = train_vec.ret_rms
-        eval_vec.norm_reward = False   # evaluate on real rewards
-
-        # 11) Evaluate
+        # 10) Evaluate
         mean_reward, _ = evaluate_policy(
             model, eval_vec,
             n_eval_episodes=40,
@@ -110,7 +91,7 @@ def main():
         )
         print(f"→ Mean reward: {mean_reward:.1f}")
 
-        # 12) Track best
+        # 11) Track best
         if mean_reward > best_score:
             best_score, best_params = mean_reward, hp
 
