@@ -36,7 +36,7 @@ def make_env(env_id: str, seed: int, use_udr: bool) -> Monitor:
 
         body 2: [0.90, 1.10]
         body 3: [0.90, 1.10]
-        body 4: [0.70, 1.30]
+        body 4: [0.50, 1.50]
         """
         ranges = {2: (0.9, 1.1), 3: (0.9, 1.1), 4: (0.7, 1.3)}
         env = HopperMassRandomWrapper(env, ranges)
