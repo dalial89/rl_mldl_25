@@ -1,6 +1,8 @@
 import os, csv, argparse, random, numpy as np, torch, gym
 from pathlib import Path
 from stable_baselines3 import PPO
+from env.custom_hopper import *
+
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.utils import get_linear_fn
