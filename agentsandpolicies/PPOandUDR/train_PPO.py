@@ -31,7 +31,14 @@ def make_env(env_id: str, seed: int, use_udr: bool) -> Monitor:
     env = gym.make(env_id)
 
     if use_udr:
-        ranges = {2: (0.7, 1.3), 3: (0.7, 1.3), 4: (0.7, 1.3)}
+        """
+        BEST RANGES:
+
+        body 2: [0.90, 1.10]
+        body 3: [0.90, 1.10]
+        body 4: [0.70, 1.30]
+        """
+        ranges = {2: (0.9, 1.1), 3: (0.9, 1.1), 4: (0.7, 1.3)}
         env = HopperMassRandomWrapper(env, ranges)
 
     env.seed(seed)
@@ -70,10 +77,9 @@ def train(env_id: str, seed: int, total_ts: int, device: str, use_udr: bool):
     batch_size     : 128
     gamma          : 0.99
     learning_rate  : 0.001
-    Best mean reward : 1482.17
     """
 
-    """
+
 
     model = PPO(
         policy="MlpPolicy",
@@ -87,16 +93,9 @@ def train(env_id: str, seed: int, total_ts: int, device: str, use_udr: bool):
         gamma=0.99,
         learning_rate=1e-3,   
     )
-    """
 
-    model = PPO(
-        "MlpPolicy",
-        env,
-        seed=seed,
-        device=device,
-        verbose=1,
-        learning_rate=lr_fn,
-    )
+
+
     model.learn(total_timesteps=total_ts)
 
     # save
@@ -105,11 +104,11 @@ def train(env_id: str, seed: int, total_ts: int, device: str, use_udr: bool):
     weights_dir.mkdir(exist_ok=True)
     data_dir.mkdir(exist_ok=True)
 
-    weight_file = weights_dir / f"ppo_{env_tag}_seed_{seed}_UDR_{use_udr}.zip"
+    weight_file = weights_dir / f"ppo_tuned_{env_tag}_seed_{seed}_UDR_{use_udr}.zip"
     model.save(str(weight_file))
     print(f"Model weights saved → {weight_file}")
 
-    csv_file = data_dir / f"ppo_{env_tag}_seed_{seed}_UDR_{use_udr}_returns.csv"
+    csv_file = data_dir / f"ppo_tuned_{env_tag}_seed_{seed}_UDR_{use_udr}_returns.csv"
     save_rewards_csv(env, str(csv_file))
 
     # quick evaluation
