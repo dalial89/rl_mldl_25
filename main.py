@@ -130,19 +130,26 @@ def main():
             subprocess.call(cmd)
 
         elif args.agent == "PPO":
-            # call the PPO training module via -m
-            module = "agentsandpolicies.PPOandUDR.train_PPO"
+            
+            # call the new train_PPO.py script in the PPOandUDR subpackage
+            script = (Path(__file__).parent
+                    / "agentsandpolicies"
+                    / "PPOandUDR"
+                    / "train_PPO.py")
+            if not script.exists():
+                sys.exit(f"Error: train_PPO.py not found at {script}")
             cmd = [
-                sys.executable, "-m", module,
-                "--env",       args.env,
-                "--seed",      str(args.seed),
-                "--timesteps", str(args.episodes),
-                "--device",    args.device,
+                sys.executable, str(script),
+                "--env",      args.use_udr and "source" or args.env,
+                "--seed",     str(args.seed),
+                "--timesteps",str(args.episodes),
+                "--device",   args.device,
             ]
             if args.use_udr:
                 cmd.append("--udr")
             print("[subprocess]", " ".join(cmd))
             subprocess.call(cmd)
+
 
         else:
             sys.exit(f"Unknown agent '{args.agent}'")
