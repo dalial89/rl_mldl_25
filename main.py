@@ -92,19 +92,19 @@ def main():
             subprocess.call(cmd)
 
         elif args.agent == "PPO":
-            # call the new train_PPO.py script
-            script = Path(__file__).parent / "train_PPO.py"
+            module = "agentsandpolicies.PPOandUDR.train_PPO"
             cmd = [
-                sys.executable, str(script),
-                "--env",      args.use_udr and "source" or args.env,  # or however you pass source/target
-                "--seed",     str(args.seed),
-                "--timesteps",str(args.episodes),
-                "--device",   args.device,
+                sys.executable, "-m", module,
+                "--env",       args.use_udr and "source" or args.env,
+                "--seed",      str(args.seed),
+                "--timesteps", str(args.episodes),
+                "--device",    args.device,
             ]
             if args.use_udr:
                 cmd.append("--udr")
             print("[subprocess]", " ".join(cmd))
             subprocess.call(cmd)
+
         else:
             sys.exit(f"Unknown agent '{args.agent}'")
 
@@ -130,27 +130,22 @@ def main():
             subprocess.call(cmd)
 
         elif args.agent == "PPO":
-            
-            # call the new train_PPO.py script in the PPOandUDR subpackage
-            script = (Path(__file__).parent
-                    / "agentsandpolicies"
-                    / "PPOandUDR"
-                    / "train_PPO.py")
-            if not script.exists():
-                sys.exit(f"Error: train_PPO.py not found at {script}")
+            # invoke your custom test_PPO.py
+            script = Path(__file__).resolve().parent / "test_PPO.py"
             cmd = [
                 sys.executable, str(script),
-                "--env",      args.use_udr and "source" or args.env,
+                "--env",      args.env,
                 "--seed",     str(args.seed),
-                "--timesteps",str(args.episodes),
+                "--episodes", str(args.episodes),
                 "--device",   args.device,
             ]
+            if args.render:
+                cmd.append("--render")
             if args.use_udr:
                 cmd.append("--udr")
+
             print("[subprocess]", " ".join(cmd))
             subprocess.call(cmd)
-
-
         else:
             sys.exit(f"Unknown agent '{args.agent}'")
         
