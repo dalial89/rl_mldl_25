@@ -74,7 +74,7 @@ def train(env_id: str, seed: int, total_ts: int, device: str, use_udr: bool):
     """
     BEST PARAMETERS
     gamma          : 0.99
-    learning_rate  : 0.001
+    learning_rate  : 3e-4
     """
 
 
@@ -87,7 +87,7 @@ def train(env_id: str, seed: int, total_ts: int, device: str, use_udr: bool):
         verbose=1,
         # best parameters
         gamma=0.99,
-        learning_rate=1e-3   
+        learning_rate=3e-4   
     )
 
 
