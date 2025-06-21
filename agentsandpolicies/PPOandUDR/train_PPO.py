@@ -74,12 +74,16 @@ def train(env_id: str, seed: int, total_ts: int, device: str, use_udr: bool):
     """
 
     model = PPO(
-        "MlpPolicy",
-        env,
+        policy="MlpPolicy",
+        env=env,
         seed=seed,
         device=device,
         verbose=1,
-        learning_rate=lr_fn,
+        # best parameters
+        n_steps=4096,
+        batch_size=128,
+        gamma=0.99,
+        learning_rate=1e-3,   
     )
     model.learn(total_timesteps=total_ts)
 
@@ -89,11 +93,11 @@ def train(env_id: str, seed: int, total_ts: int, device: str, use_udr: bool):
     weights_dir.mkdir(exist_ok=True)
     data_dir.mkdir(exist_ok=True)
 
-    weight_file = weights_dir / f"ppo_{env_tag}_seed_{seed}_UDR_{use_udr}.zip"
+    weight_file = weights_dir / f"ppo_tuned_{env_tag}_seed_{seed}_UDR_{use_udr}.zip"
     model.save(str(weight_file))
     print(f"Model weights saved → {weight_file}")
 
-    csv_file = data_dir / f"ppo_{env_tag}_seed_{seed}_UDR_{use_udr}_returns.csv"
+    csv_file = data_dir / f"ppo_tuned_{env_tag}_seed_{seed}_UDR_{use_udr}_returns.csv"
     save_rewards_csv(env, str(csv_file))
 
     # quick evaluation
