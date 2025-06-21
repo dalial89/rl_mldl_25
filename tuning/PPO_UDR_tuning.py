@@ -61,10 +61,8 @@ def main():
         policy       = 'MlpPolicy',
         seed         = SEED,
         verbose      = 0,
-        n_steps      = 4096,
-        batch_size   = 128,
         gamma        = 0.99,
-        learning_rate= lr_schedule,
+        learning_rate= lr_schedule
     )
     # UDR parameter grid: percentage perturbations
     PERCENTS      = [10, 30, 50]
@@ -100,7 +98,7 @@ def main():
 
         # 7) Instantiate PPO with fixed best params
         model = PPO(env=train_env, **PPO_KWARGS)
-        model.learn(total_timesteps=200_000)
+        model.learn(total_timesteps=1_000_000)
 
         # 8) Evaluate
         mean_reward, _ = evaluate_policy(

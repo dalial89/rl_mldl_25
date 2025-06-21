@@ -77,7 +77,7 @@ def main():
         )
 
         # 9) Train
-        model.learn(total_timesteps=300_000)
+        model.learn(total_timesteps=1_000_000)
 
         # 10) Evaluate
         mean_reward, _ = evaluate_policy(
