@@ -130,22 +130,20 @@ def main():
             subprocess.call(cmd)
 
         elif args.agent == "PPO":
-            # invoke your custom test_PPO.py
-            script = Path(__file__).resolve().parent / "test_PPO.py"
+            # call the PPO training module via -m
+            module = "agentsandpolicies.PPOandUDR.train_PPO"
             cmd = [
-                sys.executable, str(script),
-                "--env",      args.env,
-                "--seed",     str(args.seed),
-                "--episodes", str(args.episodes),
-                "--device",   args.device,
+                sys.executable, "-m", module,
+                "--env",       args.env,
+                "--seed",      str(args.seed),
+                "--timesteps", str(args.episodes),
+                "--device",    args.device,
             ]
-            if args.render:
-                cmd.append("--render")
             if args.use_udr:
                 cmd.append("--udr")
-
             print("[subprocess]", " ".join(cmd))
             subprocess.call(cmd)
+
         else:
             sys.exit(f"Unknown agent '{args.agent}'")
         
