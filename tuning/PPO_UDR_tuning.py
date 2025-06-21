@@ -52,9 +52,6 @@ def main():
 
     print("\n----- UDR hyperparameter sweep for PPO -----\n")
 
-    # 3) Learning-rate schedule
-    lr_schedule = get_linear_fn(start=1e-4, end=0.0, end_fraction=1.0)
-
     # 4) Define PPO fixed args and UDR sweep grid
     # fixed PPO settings from prior tuning
     PPO_KWARGS = dict(
@@ -62,7 +59,7 @@ def main():
         seed         = SEED,
         verbose      = 0,
         gamma        = 0.99,
-        learning_rate= lr_schedule
+        learning_rate= 3e-4
     )
     # UDR parameter grid: percentage perturbations
     PERCENTS      = [10, 30, 50]
