@@ -64,6 +64,15 @@ def train(env_id: str, seed: int, total_ts: int, device: str, use_udr: bool):
     env  = make_env(env_id, seed, use_udr)
     lr_fn = get_linear_fn(start=1e-4, end=0.0, end_fraction=1.0)   # linear LR decay
 
+    """
+    BEST PARAMETERS
+    n_steps        : 4096
+    batch_size     : 128
+    gamma          : 0.99
+    learning_rate  : 0.001
+    Best mean reward : 1482.17
+    """
+
     model = PPO(
         "MlpPolicy",
         env,
@@ -75,8 +84,8 @@ def train(env_id: str, seed: int, total_ts: int, device: str, use_udr: bool):
     model.learn(total_timesteps=total_ts)
 
     # save
-    weights_dir = Path(__file__).resolve().parent / "models_weights"
-    data_dir    = Path(__file__).resolve().parent / "models_data"
+    weights_dir = Path(__file__).resolve().parents[2] / "models_weights"
+    data_dir    = Path(__file__).resolve().parents[2] / "models_data"
     weights_dir.mkdir(exist_ok=True)
     data_dir.mkdir(exist_ok=True)
 
