@@ -41,10 +41,8 @@ def main():
 
     # 4) Hyperparameter grid
     param_grid = {
-        "n_steps":       [2048, 4096, 8192],
-        "batch_size":    [32, 128],
-        "gamma":         [0.95, 0.99],
-        "learning_rate": [lr_schedule, 1e-3, 1e-6]
+        "gamma":         [0.95,0.98, 0.99],
+        "learning_rate": [lr_schedule, 1e-3, 1e-6, 1e-8]
 
     }
 
@@ -74,14 +72,12 @@ def main():
             env=train_vec,
             seed=SEED,
             verbose=0,
-            n_steps=hp["n_steps"],
-            batch_size=hp["batch_size"],
             gamma=hp["gamma"],
             learning_rate=hp["learning_rate"]
         )
 
         # 9) Train
-        model.learn(total_timesteps=200_000)
+        model.learn(total_timesteps=300_000)
 
         # 10) Evaluate
         mean_reward, _ = evaluate_policy(

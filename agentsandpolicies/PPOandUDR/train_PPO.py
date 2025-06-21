@@ -73,8 +73,6 @@ def train(env_id: str, seed: int, total_ts: int, device: str, use_udr: bool):
 
     """
     BEST PARAMETERS
-    n_steps        : 4096
-    batch_size     : 128
     gamma          : 0.99
     learning_rate  : 0.001
     """
@@ -88,10 +86,8 @@ def train(env_id: str, seed: int, total_ts: int, device: str, use_udr: bool):
         device=device,
         verbose=1,
         # best parameters
-        n_steps=4096,
-        batch_size=128,
         gamma=0.99,
-        learning_rate=1e-3,   
+        learning_rate=1e-3   
     )
 
 
