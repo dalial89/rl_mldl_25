@@ -41,8 +41,8 @@ def main():
 
     # 4) Hyperparameter grid
     param_grid = {
-        "gamma":         [0.95,0.98, 0.99],
-        "learning_rate": [lr_schedule, 1e-3, 3e-4,1e-6, 1e-8]
+        "gamma":         [0.98, 0.99],#0.95, 0.98,0.99
+        "learning_rate": [1e-4, 6e-4, 9e-4] #lr_schedule, 1e-3, 3e-4,1e-6, 1e-8
 
     }
 
