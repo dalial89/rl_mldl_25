@@ -131,7 +131,7 @@ def main():
 
         elif args.agent == "PPO":
             # invoke your custom test_PPO.py
-            script = Path(__file__).resolve().parent / "test_PPO.py"
+            script = Path(__file__).resolve().parent[2] / "test_PPO.py"
             cmd = [
                 sys.executable, str(script),
                 "--env",      args.env,
