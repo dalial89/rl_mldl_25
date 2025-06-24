@@ -13,6 +13,7 @@ from env.custom_hopper import *
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.logger import configure
 from scipy.ndimage import gaussian_filter1d
 from scipy.stats import wasserstein_distance
 from sklearn.metrics.pairwise import rbf_kernel
@@ -70,7 +71,8 @@ def simopt_loop(mu_vars, discrepancy_method):
         masses = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]
         env_sim = gym.make('CustomHopper-source-v0')
         env_sim.set_parameters(masses)
-        model = PPO("MlpPolicy", env_sim, learning_rate=0.001, gamma=0.99, verbose=0, seed=SEED)
+        env_sim = Monitor(env_sim)
+        model = PPO("MlpPolicy", env_sim, learning_rate=0.001, gamma=0.99, verbose=1, seed=SEED)
         model.learn(total_timesteps=10000)
 
         env_real = gym.make('CustomHopper-target-v0')
