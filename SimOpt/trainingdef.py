@@ -120,7 +120,8 @@ def final_training(mu_vars, total_steps):
         model.learn(total_timesteps=1000, reset_num_timesteps=False)
         train_rewards = env_train.get_episode_rewards()
         if len(train_rewards) >= 10:
-            print(f"Mean training reward (last 10 episodes): {np.mean(rewards[-10:]):.2f}")
+            mean_training = np.mean(training_rewards[-10:])
+            print(f"Mean training reward (last 10 episodes): {mean_training:.2f}")
         avg, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
         rewards[step] = [avg]
         log.append(["Source-Target", step, avg])
