@@ -24,7 +24,7 @@ def _evaluate_single(
     seed: int,
     device: str,
     render: bool
-) -> Tuple[float, float]:
+):
     """Return (mean, std) return over `episodes` episodes."""
     env = gym.make(env_id)
     env.seed(seed)
@@ -52,7 +52,7 @@ def evaluate_all_ppo(
     episodes: int,
     device: str = "cpu",
     render: bool = False,
-) -> List[Dict[str, str | float]]:
+):
     """
     Evaluate every (source/target × UDR True/False) checkpoint and
     return a list of results.  Also writes the CSV described above.
