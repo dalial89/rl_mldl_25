@@ -66,7 +66,7 @@ def main():
     configs = [
         ('Simopt_ppo_policy_final', 'CustomHopper-source-v0', 42, True, 'source→source'),
         ('Simopt_ppo_policy_final', 'CustomHopper-source-v0', 42, True, 'source→target'),
-        ('Simopt_ppo_policy_final', 'CustomHopper-target-v0', 42, True, 'target→target')
+        ('Simopt_ppo_policy_final', 'CustomHopper-target-v0', 43, True, 'target→target')
     ]
 
     for model_path, env_name, seed, udr, setup_name in configs:
