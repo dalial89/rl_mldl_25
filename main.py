@@ -136,7 +136,7 @@ def main():
             for train_env in ("source","target"):
                 # per train_env="target" vogliamo solo target→target
                 test_envs = ["target"] if train_env=="target" else ["source","target"]
-                for use_udr in (False, True):
+                for use_udr in (False,):
                     for test_env in test_envs:
                         cmd = [
                             sys.executable, "-m", module,
