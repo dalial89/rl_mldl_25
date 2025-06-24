@@ -119,7 +119,7 @@ def final_training(mu_vars, total_steps):
     steps_done = 0
     while steps_done < total_steps:
         steps_to_do = min(1000, total_steps - steps_done)
-        model.learn(total_timesteps=1000, reset_num_timesteps=False)
+        model.learn(total_timesteps=steps_to_do, reset_num_timesteps=False)
         steps_done += steps_to_do
         train_rewards = env_train.get_episode_rewards()
         if len(train_rewards) >= 10:
