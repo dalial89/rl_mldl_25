@@ -129,7 +129,6 @@ def final_training(mu_vars, total_steps):
         rewards_eval[step] = [avg_eval]
         
     model.save("Simopt_ppo_policy_final")
-    np.save("SimOpt_results.npy", rewards)
     df = pd.DataFrame(log, columns=["Environment", "Timesteps", "Mean Reward"])
     plt.figure(figsize=(12, 8))
     sns.lineplot(data=df, x="Timesteps", y="Mean Reward", hue="Environment", errorbar="sd")
