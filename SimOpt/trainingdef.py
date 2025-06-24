@@ -116,17 +116,20 @@ def final_training(mu_vars, total_steps):
     rewards_eval = {}
     log = []
 
-    for step in range(1000, total_steps + 1, 1000):
+    steps_done = 0
+    while steps_done < total_steps:
+        steps_to_do = min(1000, total_steps - steps_done)
         model.learn(total_timesteps=1000, reset_num_timesteps=False)
+        steps_done += steps_to_do
         train_rewards = env_train.get_episode_rewards()
         if len(train_rewards) >= 10:
             mean_training = np.mean(train_rewards[-10:])
             print(f"Mean training reward (last 10 episodes): {mean_training:.2f}")
         avg_eval, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
         #print(f"[{step}] Evaluation on target: {avg_eval:.2f}")
-        log.append(["Train (source)", step, mean_training])
-        log.append(["Eval (target)", step, avg_eval])
-        rewards_eval[step] = [avg_eval]
+        log.append(["Train (source)", steps_done, mean_training])
+        log.append(["Eval (target)", steps_done, avg_eval])
+        rewards_eval[steps_done] = [avg_eval]
         
     model.save("Simopt_ppo_policy_final")
     df = pd.DataFrame(log, columns=["Environment", "Timesteps", "Mean Reward"])
