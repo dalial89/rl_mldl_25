@@ -58,17 +58,22 @@ def compute_discrepancy(real_obs, sim_obs, method):
 
 def simopt_loop(mu_vars, discrepancy_method):
     tol = 1e-3
+    env_template = gym.make("CustomHopper-source-v0")
+    root_mass = env_template.sim.model.body_mass[1]      
+    env_template.close()
+
     while all(var[1] > tol for var in mu_vars):
-        masses = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]
+        masses3 = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]   # thigh, leg, foot
+        masses4 = np.concatenate([[root_mass], masses3])               # prepend torso
         env_sim = gym.make('CustomHopper-source-v0')
-        env_sim.set_parameters(masses)
+        env_sim.set_parameters(masses4)
         model = PPO("MlpPolicy", env_sim,
                     learning_rate=3e-4, gamma=0.99,
                     verbose=0, seed=SEED, device=args.device)
         model.learn(total_timesteps=10000)
 
         env_real = gym.make('CustomHopper-target-v0')
-        env_real.set_parameters(masses)
+        env_real.set_parameters(masses4)
 
         real_obs = rollout_episodes(env_real, model)
         sim_obs = rollout_episodes(env_sim, model)
@@ -98,9 +103,10 @@ def simopt_loop(mu_vars, discrepancy_method):
     return mu_vars
 
 def final_training(mu_vars, total_steps):
-    masses = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]
+    masses3 = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]
+    masses4 = np.concatenate([[root_mass], masses3])
     env_train = gym.make('CustomHopper-source-v0')
-    env_train.set_parameters(masses)
+    env_train.set_parameters(masses4)
     env_train = Monitor(env_train)
     
     model = PPO("MlpPolicy", env_train,
