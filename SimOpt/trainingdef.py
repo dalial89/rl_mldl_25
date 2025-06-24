@@ -113,7 +113,7 @@ def final_training(mu_vars, total_steps):
     model = PPO("MlpPolicy", env_train, learning_rate=0.001, gamma=0.99, verbose=1, seed=SEED)
 
     env_eval = Monitor(gym.make('CustomHopper-target-v0'))
-    rewards = {}
+    rewards_eval = {}
     log = []
 
     for step in range(1000, total_steps + 1, 1000):
