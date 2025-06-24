@@ -46,6 +46,15 @@ def parse_args():
                         help="Which Hopper environment to train PPO on: source or target")
     parser.add_argument("--all-testing", action="store_true",
                         help="When --run_testing and agent==PPO, run all source→source, source→target, target→target (UDR off/on)")
+    parser.add_argument("--discrepancy",
+                        choices=["score1", "score2", "score3"],
+                        default="score1",
+                        help="Metric to minimise during SimOpt (only with --simopt_train)")
+    parser.add_argument("--final_steps",
+                        type=int,
+                        default=100_000,
+                        help="Total PPO timesteps for the final training stage (SimOpt)")
+
     return parser.parse_args()
 
 
@@ -161,12 +170,21 @@ def main():
         
         print(f">>> {args.agent} evaluation completed.\n")
 
-    # 5) Bayesian SimOpt training
+    # 5) SimOpt training
     if args.simopt_train:
-        print(">>> Starting adaptive SimOpt training (Bayesian)...")
-        from agentsandpolicies.PPOandSimOpt.trainSimOpt import run_simopt
-        run_simopt(seed=args.seed, device=args.device)
-        print(">>> Bayesian SimOpt training completed.\n")
+        print(">>> Starting SimOpt training (CMA-ES prototype)...")
+        module = "agentsandpolicies.SimOpt.simopt_train"
+        cmd = [
+            sys.executable, "-m", module,
+            "--discrepancy",  args.discrepancy,
+            "--final_steps",  str(args.final_steps),
+            "--seed",         str(args.seed),
+            "--device",       args.device
+        ]
+        print("[subprocess]", " ".join(cmd))
+        subprocess.call(cmd)
+        print(">>> SimOpt training completed.\n")
+
 
     # 6) Bayesian SimOpt evaluation
     if args.simopt_test:
