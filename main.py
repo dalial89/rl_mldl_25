@@ -44,6 +44,8 @@ def parse_args():
                         help="Render the envs during evaluation")
     parser.add_argument("--env", required=True, choices=["source","target"],
                         help="Which Hopper environment to train PPO on: source or target")
+    parser.add_argument("--all-testing", action="store_true",
+                        help="When --run_testing and agent==PPO, run all source→source, source→target, target→target (UDR off/on)")
     return parser.parse_args()
 
 
@@ -129,25 +131,32 @@ def main():
             print("[subprocess]", " ".join(cmd))
             subprocess.call(cmd)
 
-        elif args.agent == "PPO":
-            # invoke your custom test_PPO.py
+        elif args.all_testing and args.agent == "PPO":
             script = (Path(__file__).resolve().parent
-          / "agentsandpolicies" / "PPOandUDR" / "test_PPO.py")
+                      / "agentsandpolicies" / "PPOandUDR" / "test_PPO.py")
+            for train_env in ("source","target"):
+                # per train_env="target" vogliamo solo target→target
+                test_envs = ["target"] if train_env=="target" else ["source","target"]
+                for use_udr in (False, True):
+                    for test_env in test_envs:
+                        cmd = [
+                            sys.executable, str(script),
+                            "--env",       train_env,
+                            "--test-env",  test_env,
+                            "--seed",      str(args.seed),
+                            "--episodes",  str(args.episodes),
+                            "--device",    args.device,
+                        ]
+                        if args.render:
+                            cmd.append("--render")
+                        if use_udr:
+                            cmd.append("--use-udr")
+                        print("[subprocess]", " ".join(cmd))
+                        subprocess.call(cmd)
+            print(">>> All PPO tests completed.\n")
+            sys.exit(0)
 
-            cmd = [
-                sys.executable, str(script),
-                "--env",      args.env,
-                "--seed",     str(args.seed),
-                "--episodes", str(args.episodes),
-                "--device",   args.device,
-            ]
-            if args.render:
-                cmd.append("--render")
-            if args.use_udr:
-                cmd.append("--udr")
-
-            print("[subprocess]", " ".join(cmd))
-            subprocess.call(cmd)
+        
         else:
             sys.exit(f"Unknown agent '{args.agent}'")
         
