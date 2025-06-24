@@ -113,7 +113,7 @@ def simopt_loop(mu_vars, discrepancy_method):
             f"x{i+1}": ng.p.Scalar(init=mu_vars[i][0]).set_mutation(sigma=mu_vars[i][1])
             for i in range(3)
         })
-        optimizer = ng.optimizers.CMA(parametrization=param, budget=1300)
+        optimizer = ng.optimizers.CMA(parametrization=param, budget=100)
 
         for _ in range(optimizer.budget):
             x = optimizer.ask()
