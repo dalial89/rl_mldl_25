@@ -71,8 +71,7 @@ def simopt_loop(mu_vars, discrepancy_method):
         masses = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]
         env_sim = gym.make('CustomHopper-source-v0')
         env_sim.set_parameters(masses)
-        env_sim = Monitor(env_sim)
-        model = PPO("MlpPolicy", env_sim, learning_rate=0.001, gamma=0.99, verbose=1, seed=SEED)
+        model = PPO("MlpPolicy", env_sim, learning_rate=0.001, gamma=0.99, verbose=0, seed=SEED)
         model.learn(total_timesteps=10000)
 
         env_real = gym.make('CustomHopper-target-v0')
@@ -109,7 +108,9 @@ def final_training(mu_vars, total_steps):
     masses = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]
     env_train = gym.make('CustomHopper-source-v0')
     env_train.set_parameters(masses)
-    model = PPO("MlpPolicy", env_train, learning_rate=0.001, gamma=0.99, verbose=0, seed=SEED)
+    env_train = Monitor(env_train)
+    
+    model = PPO("MlpPolicy", env_train, learning_rate=0.001, gamma=0.99, verbose=1, seed=SEED)
 
     env_eval = Monitor(gym.make('CustomHopper-target-v0'))
     rewards = {}
@@ -117,10 +118,13 @@ def final_training(mu_vars, total_steps):
 
     for step in range(1000, total_steps + 1, 1000):
         model.learn(total_timesteps=1000, reset_num_timesteps=False)
+        rewards = env_train.get_episode_rewards()
+        if len(rewards) >= 10:
+            print(f"Mean training reward (last 10 episodes): {np.mean(rewards[-10:]):.2f}")
         avg, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
         rewards[step] = [avg]
         log.append(["Source-Target", step, avg])
-        print(f"Step {step}, Eval: {avg:.2f}")
+        #print(f"Step {step}, Eval: {avg:.2f}")
         
     model.save("Simopt_ppo_policy_final")
     np.save("SimOpt_results.npy", rewards)
