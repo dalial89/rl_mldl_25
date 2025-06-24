@@ -132,15 +132,14 @@ def main():
             subprocess.call(cmd)
 
         elif args.all_testing and args.agent == "PPO":
-            script = (Path(__file__).resolve().parent
-                      / "agentsandpolicies" / "PPOandUDR" / "test_PPO.py")
+            module = "agentsandpolicies.PPOandUDR.test_PPO"
             for train_env in ("source","target"):
                 # per train_env="target" vogliamo solo target→target
                 test_envs = ["target"] if train_env=="target" else ["source","target"]
                 for use_udr in (False, True):
                     for test_env in test_envs:
                         cmd = [
-                            sys.executable, str(script),
+                            sys.executable, "-m", module,
                             "--env",       train_env,
                             "--test-env",  test_env,
                             "--seed",      str(args.seed),
