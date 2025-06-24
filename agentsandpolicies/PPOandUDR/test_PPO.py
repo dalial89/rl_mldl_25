@@ -68,7 +68,7 @@ def evaluate_all_ppo(
     udr_options = (True,) if use_udr_flag else (False, True)
 
     for use_udr in udr_options:
-        ckpt = WEIGHTS_DIR / f"ppo_{train_env}_seed_{seed}_UDR_{use_udr}.zip"
+        ckpt = WEIGHTS_DIR / f"ppo_tuned_{train_env}_seed_{seed}_UDR_{use_udr}.zip"
         if not ckpt.exists():
             continue
 
