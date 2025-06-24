@@ -38,7 +38,7 @@ def evaluate_setup(model_path, env_name, seed, udr, setup_name, episodes=100):
             steps += 1
 
             if time.time() - start_time > TIMEOUT:
-                print(f"[WARNING] Episode {ep+1}: Timeout after {TIMEOUT}s — breaking.")
+                print(f"Episode {ep+1}: Timeout after {TIMEOUT}s")
                 break
 
         episode_rewards.append(total_reward)
