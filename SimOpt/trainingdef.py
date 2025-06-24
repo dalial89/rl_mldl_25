@@ -122,17 +122,18 @@ def final_training(mu_vars, total_steps):
         if len(train_rewards) >= 10:
             mean_training = np.mean(train_rewards[-10:])
             print(f"Mean training reward (last 10 episodes): {mean_training:.2f}")
-        avg, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
-        rewards[step] = [avg]
-        log.append(["Source-Target", step, avg])
-        #print(f"Step {step}, Eval: {avg:.2f}")
+        avg_eval, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
+        #print(f"[{step}] Evaluation on target: {avg_eval:.2f}")
+        log.append(["Train (source)", step, mean_training])
+        log.append(["Eval (target)", step, avg_eval])
+        rewards_eval[step] = [avg_eval]
         
     model.save("Simopt_ppo_policy_final")
     np.save("SimOpt_results.npy", rewards)
     df = pd.DataFrame(log, columns=["Environment", "Timesteps", "Mean Reward"])
     plt.figure(figsize=(12, 8))
     sns.lineplot(data=df, x="Timesteps", y="Mean Reward", hue="Environment", errorbar="sd")
-    plt.title("SimOpt Final PPO Performance")
+    plt.title("SimOpt PPO Performance on Source (Train) and Target (Eval)")
     plt.savefig("SimOpt_Performance.png")
     plt.close()
 
