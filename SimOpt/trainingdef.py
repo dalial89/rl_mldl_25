@@ -64,7 +64,7 @@ def compute_discrepancy(real_obs, sim_obs, method):
         return discrepancy_score3(real_obs, sim_obs)
     else:
         raise ValueError("Invalid discrepancy method selected.")
-
+'''
 def simopt_loop(mu_vars, discrepancy_method):
     tol = 1e-3
     while all(var[1] > tol for var in mu_vars):
@@ -91,6 +91,46 @@ def simopt_loop(mu_vars, discrepancy_method):
 
         for _ in range(optimizer.budget):
             x = optimizer.ask()
+            optimizer.tell(x, discrepancy)
+
+        rec = optimizer.recommend()
+        print("Recommended:", rec.value)
+
+        for i, k in enumerate(['x1', 'x2', 'x3']):
+            samples = np.append(np.random.normal(mu_vars[i][0], mu_vars[i][1], 300), rec.value[k])
+            mu_vars[i][0], mu_vars[i][1] = np.mean(samples), np.var(samples)
+
+        print("Updated mu/var:", mu_vars)
+
+    return mu_vars
+'''
+def simopt_loop(mu_vars, discrepancy_method):
+    tol = 1e-3
+    while all(var[1] > tol for var in mu_vars):
+        print("New outer iteration with mu_vars:", mu_vars)
+
+        param = ng.p.Dict(**{
+            f"x{i+1}": ng.p.Scalar(init=mu_vars[i][0]).set_mutation(sigma=mu_vars[i][1])
+            for i in range(3)
+        })
+        optimizer = ng.optimizers.CMA(parametrization=param, budget=1300)
+
+        for _ in range(optimizer.budget):
+            x = optimizer.ask()
+            test_masses = [x.value['x1'], x.value['x2'], x.value['x3']]
+
+            env_sim = gym.make('CustomHopper-source-v0')
+            env_sim.set_parameters(test_masses)
+            model = PPO("MlpPolicy", env_sim, learning_rate=0.001, gamma=0.99, verbose=0, seed=SEED)
+            model.learn(total_timesteps=10000)
+
+            env_real = gym.make('CustomHopper-target-v0')
+            env_real.set_parameters(test_masses)
+
+            real_obs = rollout_episodes(env_real, model)
+            sim_obs = rollout_episodes(env_sim, model)
+
+            discrepancy = compute_discrepancy(real_obs, sim_obs, discrepancy_method)
             optimizer.tell(x, discrepancy)
 
         rec = optimizer.recommend()
