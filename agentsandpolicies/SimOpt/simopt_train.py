@@ -15,6 +15,12 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.stats import wasserstein_distance
 from sklearn.metrics.pairwise import rbf_kernel
 
+def make_env(env_id: str, seed: int):
+    env = gym.make(env_id)
+    env.seed(seed)
+    env.action_space.seed(seed)
+    return env
+
 def discrepancy_score1(real_obs, sim_obs, w1=1.0, w2=0.1, sigma=1.0):
     real_obs, sim_obs = np.array(real_obs), np.array(sim_obs)
     diff = sim_obs - real_obs
@@ -58,21 +64,21 @@ def compute_discrepancy(real_obs, sim_obs, method):
 
 def simopt_loop(mu_vars, discrepancy_method):
     tol = 1e-3
-    env_template = gym.make("CustomHopper-source-v0")
+    env_template = make_env("CustomHopper-source-v0", SEED)
     root_mass = env_template.sim.model.body_mass[1]      
     env_template.close()
 
     while all(var[1] > tol for var in mu_vars):
         masses3 = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]   # thigh, leg, foot
         masses4 = np.concatenate([[root_mass], masses3])               # prepend torso
-        env_sim = gym.make('CustomHopper-source-v0')
+        env_sim  = make_env("CustomHopper-source-v0", SEED)
         env_sim.set_parameters(masses4)
         model = PPO("MlpPolicy", env_sim,
                     learning_rate=3e-4, gamma=0.99,
                     verbose=0, seed=SEED, device=args.device)
         model.learn(total_timesteps=10000)
 
-        env_real = gym.make('CustomHopper-target-v0')
+        env_real = make_env("CustomHopper-target-v0", SEED)
         env_real.set_parameters(masses4)
 
         real_obs = rollout_episodes(env_real, model)
@@ -85,7 +91,9 @@ def simopt_loop(mu_vars, discrepancy_method):
             f"x{i+1}": ng.p.Scalar(init=mu_vars[i][0]).set_mutation(sigma=mu_vars[i][1])
             for i in range(3)
         })
-        optimizer = ng.optimizers.CMA(parametrization=param, budget=1300)
+        optimizer = ng.optimizers.CMA(parametrization=param,
+                              budget=1300,
+                              random_state=np.random.RandomState(SEED))
 
         for _ in range(optimizer.budget):
             x = optimizer.ask()
@@ -105,7 +113,7 @@ def simopt_loop(mu_vars, discrepancy_method):
 def final_training(mu_vars, root_mass, total_steps):
     masses3 = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]
     masses4 = np.concatenate([[root_mass], masses3])
-    env_train = gym.make('CustomHopper-source-v0')
+    env_train = make_env("CustomHopper-source-v0", SEED)
     env_train.set_parameters(masses4)
     env_train = Monitor(env_train)
     
@@ -113,7 +121,7 @@ def final_training(mu_vars, root_mass, total_steps):
                 learning_rate=3e-4, gamma=0.99,
                 verbose=1, seed=SEED, device=args.device)
 
-    env_eval = Monitor(gym.make('CustomHopper-target-v0'))
+    env_eval  = Monitor(make_env("CustomHopper-target-v0", SEED))
     log = []
 
     steps_done = 0
