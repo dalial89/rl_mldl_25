@@ -140,7 +140,6 @@ def final_training(mu_vars, root_mass, total_steps):
     env_train.set_parameters(masses3)
     env_train = Monitor(env_train)
 
-
     # Initialize PPO model
     model = PPO("MlpPolicy", env_train,
                 learning_rate=3e-4, gamma=0.99,
@@ -149,9 +148,16 @@ def final_training(mu_vars, root_mass, total_steps):
     # Train 
     model.learn(total_timesteps=total_steps)
 
-    # Evaluate final policy on target environment
+    # Evaluate final policy 
     env_eval  = Monitor(make_env("CustomHopper-target-v0", SEED))
     avg_eval, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
+    train_rewards = env_train.get_episode_rewards()
+    mean_training = np.mean(train_rewards[-10:]) if len(train_rewards) >= 10 else np.mean(train_rewards)
+    log = [
+        ["Train (source)", total_steps, mean_training],
+        ["Eval (target)", total_steps, avg_eval]
+    ]
+
 
     # Prepare logging
     env_type = ("source" if "source" in env_train.unwrapped.spec.id.lower()
