@@ -169,6 +169,7 @@ def final_training(mu_vars, root_mass, total_steps):
     df = pd.DataFrame(log,
                       columns=["Environment", "Timesteps", "Mean Reward"])
     df.to_csv(d_dir / f"{tag}.csv", index=False)
+    
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--discrepancy", choices=["score1", "score2", "score3"], default="score1")
