@@ -173,7 +173,7 @@ def simopt_loop(mu_vars, discrepancy_method, optimizer_name):
         # Evaluate each candidate sample proposed by the optimizer
         for _ in range(optimizer.budget):
             x = optimizer.ask()
-            masses3 = [float(x[f"x{i+1}"]) for i in range(3)]
+            masses3 = [float(x.value[f"x{i+1}"]) for i in range(3)]
 
             # Train PPO on sim env with current masses
             env_sim = make_env("CustomHopper-source-v0", SEED)
