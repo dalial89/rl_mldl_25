@@ -83,7 +83,7 @@ def simopt_loop(mu_vars, discrepancy_method):
 
         # 2) Create a simulated environment with the new body parameters and train PPO agent
         env_sim  = make_env("CustomHopper-source-v0", SEED)
-        env_sim.set_parameters(masses4)
+        env_sim.set_parameters(masses3)
 
         model = PPO("MlpPolicy", env_sim,
                     learning_rate=3e-4, gamma=0.99,
@@ -92,7 +92,7 @@ def simopt_loop(mu_vars, discrepancy_method):
 
         # 3) Create the "real" environment with the same parameters (sim-to-real simulation)
         env_real = make_env("CustomHopper-target-v0", SEED)
-        env_real.set_parameters(masses4)
+        env_real.set_parameters(masses3)
 
         # Run rollouts in both simulated and real environments using the trained model
         real_obs = rollout_episodes(env_real, model)
@@ -138,7 +138,7 @@ def final_training(mu_vars, root_mass, total_steps):
 
     # Set up training environment with final parameters
     env_train = make_env("CustomHopper-source-v0", SEED)
-    env_train.set_parameters(masses4)
+    env_train.set_parameters(masses3)
     env_train = Monitor(env_train)
 
 
