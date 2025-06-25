@@ -68,6 +68,7 @@ def compute_discrepancy(real_obs, sim_obs, method):
         raise ValueError("Invalid discrepancy method selected.")
 
 # SimOpt optimization loop
+'''
 def simopt_loop(mu_vars, discrepancy_method, optimizer_name):
     tol = 1e-3
     # Create environment and retrieve the root (torso) mass
@@ -137,6 +138,80 @@ def simopt_loop(mu_vars, discrepancy_method, optimizer_name):
         print("Updated mu/var:", mu_vars)
 
     return mu_vars, root_mass #optimized distribution parameters and torso mass
+    '''
+def simopt_loop(mu_vars, discrepancy_method, optimizer_name):
+    tol = 1e-3
+
+    # Get root mass from the base environment (assumed fixed)
+    env_template = make_env("CustomHopper-source-v0", SEED)
+    root_mass = env_template.sim.model.body_mass[1]
+    env_template.close()
+
+    iteration = 0
+
+    while all(var[1] > tol for var in mu_vars):
+        print(f"\n--- Iteration {iteration} ---")
+        
+        # Define Nevergrad parameter space based on current mu/var
+        param = ng.p.Dict(**{
+            f"x{i+1}": ng.p.Scalar(init=mu_vars[i][0]).set_mutation(sigma=mu_vars[i][1])
+            for i in range(3)
+        })
+
+        # Select optimizer
+        if optimizer_name == "cma":
+            optimizer = ng.optimizers.CMA(parametrization=param, budget=5)
+        elif optimizer_name == "pso":
+            optimizer = ng.optimizers.PSO(parametrization=param, budget=5)
+        elif optimizer_name == "de":
+            optimizer = ng.optimizers.DE(parametrization=param, budget=5)
+        else:
+            raise ValueError(f"Unsupported optimizer: {optimizer_name}")
+
+        optimizer.parametrization.random_state.seed(SEED)
+
+        # Evaluate each candidate sample proposed by the optimizer
+        for _ in range(optimizer.budget):
+            x = optimizer.ask()
+            masses3 = [x[f"x{i+1}"] for i in range(3)]
+
+            # Train PPO on sim env with current masses
+            env_sim = make_env("CustomHopper-source-v0", SEED)
+            env_sim.set_parameters(masses3)
+
+            model = PPO("MlpPolicy", env_sim,
+                        learning_rate=3e-4, gamma=0.99,
+                        verbose=0, seed=SEED, device=args.device)
+            model.learn(total_timesteps=10000)
+
+            # Evaluate discrepancy between sim and real environments
+            env_real = make_env("CustomHopper-target-v0", SEED)
+            env_real.set_parameters(masses3)
+
+            real_obs = rollout_episodes(env_real, model)
+            sim_obs  = rollout_episodes(env_sim, model)
+            discrepancy = compute_discrepancy(real_obs, sim_obs, discrepancy_method)
+
+            print(f"Candidate: {masses3}, Discrepancy: {discrepancy:.4f}")
+            optimizer.tell(x, discrepancy)
+
+        # Get best mass values from optimizer
+        rec = optimizer.recommend()
+        print("Recommended masses:", rec.value)
+
+        # Update distribution mu/var with samples + best candidate
+        for i, k in enumerate(['x1', 'x2', 'x3']):
+            samples = np.append(
+                np.random.normal(mu_vars[i][0], mu_vars[i][1], 300),
+                rec.value[k]
+            )
+            mu_vars[i][0], mu_vars[i][1] = np.mean(samples), np.var(samples)
+
+        print("Updated mu/var:", mu_vars)
+        iteration += 1
+
+    return mu_vars, root_mass
+
 
 # Final training phase using optimized mass parameters
 def final_training(mu_vars, root_mass, total_steps):
