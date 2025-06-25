@@ -6,7 +6,6 @@ import numpy as np
 import nevergrad as ng
 import argparse
 import pandas as pd
-
 from env.custom_hopper import *
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
@@ -59,7 +58,6 @@ def compute_discrepancy(real_obs, sim_obs, method):
     min_len = min(min(len(o) for o in real_obs), min(len(o) for o in sim_obs))
     real_obs = [o[:min_len] for o in real_obs]
     sim_obs = [o[:min_len] for o in sim_obs]
-
     if method == "score1":
         return discrepancy_score1(real_obs, sim_obs)
     elif method == "score2":
@@ -86,7 +84,7 @@ def simopt_loop(mu_vars, discrepancy_method):
         # 2) Create a simulated environment with the new body parameters and train PPO agent
         env_sim  = make_env("CustomHopper-source-v0", SEED)
         env_sim.set_parameters(masses4)
-        
+
         model = PPO("MlpPolicy", env_sim,
                     learning_rate=3e-4, gamma=0.99,
                     verbose=0, seed=SEED, device=args.device)
@@ -129,6 +127,7 @@ def simopt_loop(mu_vars, discrepancy_method):
 
         print("Updated mu/var:", mu_vars)
 
+    return mu_vars, root_mass
     return mu_vars, root_mass #optimized distribution parameters and torso mass
 
 # Final training phase using optimized mass parameters
@@ -142,38 +141,52 @@ def final_training(mu_vars, root_mass, total_steps):
     env_train.set_parameters(masses4)
     env_train = Monitor(env_train)
 
+
     # Initialize PPO model
     model = PPO("MlpPolicy", env_train,
                 learning_rate=3e-4, gamma=0.99,
                 verbose=1, seed=SEED, device=args.device)
-    
+
     # Train 
     model.learn(total_timesteps=total_steps)
 
     # Evaluate final policy on target environment
     env_eval  = Monitor(make_env("CustomHopper-target-v0", SEED))
+    log = []
+
+    steps_done = 0
+    mean_training = np.nan
+    while steps_done < total_steps:
+        steps_to_do = min(1000, total_steps - steps_done)
+        model.learn(total_timesteps=steps_to_do, reset_num_timesteps=False)
+        steps_done += steps_to_do
+        train_rewards = env_train.get_episode_rewards()
+        if len(train_rewards) >= 10:
+            mean_training = np.mean(train_rewards[-10:])
+            print(f"Mean training reward (last 10 episodes): {mean_training:.2f}")
+        avg_eval, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
+        #print(f"[{step}] Evaluation on target: {avg_eval:.2f}")
+        log.append(["Train (source)", steps_done, mean_training])
+        log.append(["Eval (target)", steps_done, avg_eval])
+
     avg_eval, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
-    
+
     # Prepare logging
     env_type = ("source" if "source" in env_train.unwrapped.spec.id.lower()
                          else "target")
     tag = f"ppo_tuned_{env_type}_seed_{SEED}_simopt_{args.discrepancy}"
-
     # repos
     base_dir = Path(__file__).resolve().parents[1]   
     w_dir   = base_dir / "models_weights"
     d_dir   = base_dir / "models_data"
     w_dir.mkdir(exist_ok=True, parents=True)
     d_dir.mkdir(exist_ok=True, parents=True)
-
     # 1) save weights
     model.save(str(w_dir / f"{tag}.zip"))
-
     # 2) save csv with returns
     df = pd.DataFrame(log,
                       columns=["Environment", "Timesteps", "Mean Reward"])
     df.to_csv(d_dir / f"{tag}.csv", index=False)
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--discrepancy", choices=["score1", "score2", "score3"], default="score1")
@@ -182,16 +195,15 @@ def main():
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu", help="Torch device")
     global args          
     args = parser.parse_args()
-
     global SEED
     SEED = args.seed
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
-
     mu_init = [[3.92699082, 0.5], [2.71433605, 0.5], [5.0893801, 0.5]]
     mu_final, root_mass = simopt_loop(mu_init, args.discrepancy)
     final_training(mu_final,root_mass, args.final_steps)
 
 if __name__ == '__main__':
+    main()
     main()
