@@ -160,7 +160,7 @@ def simopt_loop(mu_vars, discrepancy_method, optimizer_name):
 
         # Select optimizer
         if optimizer_name == "cma":
-            optimizer = ng.optimizers.CMA(parametrization=param, budget=2)
+            optimizer = ng.optimizers.CMA(parametrization=param, budget=5)
         elif optimizer_name == "pso":
             optimizer = ng.optimizers.PSO(parametrization=param, budget=5)
         elif optimizer_name == "de":
