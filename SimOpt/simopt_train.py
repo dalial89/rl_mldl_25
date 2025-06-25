@@ -13,6 +13,7 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from scipy.ndimage import gaussian_filter1d
 from scipy.stats import wasserstein_distance
 from sklearn.metrics.pairwise import rbf_kernel
+import csv
 
 # Create a gym environment
 def make_env(env_id: str, seed: int):
@@ -103,10 +104,10 @@ def simopt_loop(mu_vars, discrepancy_method, optimizer_name):
         for _ in range(optimizer.budget):
             x = optimizer.ask()
             masses3 = [float(x.value[f"x{i+1}"]) for i in range(3)]
-
+            masses4  = np.concatenate([[root_mass], masses3])
             # Train PPO on sim env with current masses
             env_sim = make_env("CustomHopper-source-v0", SEED)
-            env_sim.set_parameters(masses3)
+            env_sim.set_parameters(masses4)
 
             model = PPO("MlpPolicy", env_sim,
                         learning_rate=3e-4, gamma=0.99,
@@ -115,7 +116,7 @@ def simopt_loop(mu_vars, discrepancy_method, optimizer_name):
 
             # Evaluate discrepancy between sim and real environments
             env_real = make_env("CustomHopper-target-v0", SEED)
-            env_real.set_parameters(masses3)
+            env_real.set_parameters(masses4)
 
             real_obs = rollout_episodes(env_real, model)
             sim_obs  = rollout_episodes(env_sim, model)
@@ -142,8 +143,27 @@ def simopt_loop(mu_vars, discrepancy_method, optimizer_name):
     return mu_vars, root_mass
 
 
+# helper function to save rewards
+def save_rewards_csv(monitor_env: Monitor, csv_path: str) -> None:
+    rewards = monitor_env.get_episode_rewards()
+    if not rewards:
+        print("[WARN] No episodes recorded – CSV not written.")
+        return
+    cumulative, running_var = [], []
+    for r in rewards:
+        cumulative.append(r)
+        running_var.append(np.var(cumulative))
+    with open(csv_path, "w", newline="") as f:
+        wr = csv.writer(f)
+        wr.writerow(["episode", "return", "running_variance"])
+        for ep, (r, v) in enumerate(zip(rewards, running_var), 1):
+            wr.writerow([ep, r, v])
+    print(f"Saved reward log → {csv_path}")
+
+
+
 # Final training phase using optimized mass parameters
-def final_training(mu_vars, root_mass, total_steps):
+def final_training(mu_vars, root_mass, total_steps, optimizer_name):
     print("Starting final training")
     # Sample final body masses from optimized distribution
     masses3 = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]
@@ -151,7 +171,7 @@ def final_training(mu_vars, root_mass, total_steps):
 
     # Set up training environment with final parameters
     env_train = make_env("CustomHopper-source-v0", SEED)
-    env_train.set_parameters(masses3)
+    env_train.set_parameters(masses4)   
     env_train = Monitor(env_train)
 
     # Initialize PPO model
@@ -164,6 +184,7 @@ def final_training(mu_vars, root_mass, total_steps):
 
     # Evaluate final policy 
     env_eval  = Monitor(make_env("CustomHopper-target-v0", SEED))
+    env_eval.set_parameters(masses4)
     avg_eval, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
     train_rewards = env_train.get_episode_rewards()
     mean_training = np.mean(train_rewards[-10:]) if len(train_rewards) >= 10 else np.mean(train_rewards)
@@ -178,9 +199,9 @@ def final_training(mu_vars, root_mass, total_steps):
     # Prepare logging
     env_type = ("source" if "source" in env_train.unwrapped.spec.id.lower()
                          else "target")
-    tag = f"ppo_tuned_{env_type}_seed_{SEED}_simopt_{args.discrepancy}"
+    tag = f"ppo_tuned_{env_type}_seed_{SEED}_simopt_{args.discrepancy}_{optimizer_name}"
     # repos
-    base_dir = Path(__file__).resolve().parents[1]   
+    base_dir = Path(__file__).resolve().parents[2]   
     w_dir   = base_dir / "models_weights"
     d_dir   = base_dir / "models_data"
     w_dir.mkdir(exist_ok=True, parents=True)
@@ -191,6 +212,8 @@ def final_training(mu_vars, root_mass, total_steps):
     df = pd.DataFrame(log,
                       columns=["Environment", "Timesteps", "Mean Reward"])
     df.to_csv(d_dir / f"{tag}.csv", index=False)
+    # per-episode returns
+    save_rewards_csv(env_train, str(d_dir / f"{tag}_returns.csv"))
     
 def main():
     parser = argparse.ArgumentParser()
@@ -208,7 +231,7 @@ def main():
     torch.manual_seed(SEED)
     mu_init = [[3.92699082, 0.5], [2.71433605, 0.5], [5.0893801, 0.5]]
     mu_final, root_mass = simopt_loop(mu_init, args.discrepancy, args.optimizer)
-    final_training(mu_final,root_mass, args.final_steps)
+    final_training(mu_final,root_mass, args.final_steps, args.optimizer)
 
 if __name__ == '__main__':
     main()
