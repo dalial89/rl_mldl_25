@@ -15,28 +15,34 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.stats import wasserstein_distance
 from sklearn.metrics.pairwise import rbf_kernel
 
+# Create a gym environment
 def make_env(env_id: str, seed: int):
     env = gym.make(env_id)
     env.seed(seed)
     env.action_space.seed(seed)
     return env
 
+# Discrepancy Score 1: Smoothed sum of absolute and squared differences
+# Parameters w1, w2 weight the importance of L1 and L2 components, sigma controls Gaussian smoothing
 def discrepancy_score1(real_obs, sim_obs, w1=1.0, w2=0.1, sigma=1.0):
     real_obs, sim_obs = np.array(real_obs), np.array(sim_obs)
     diff = sim_obs - real_obs
     return w1 * np.sum(gaussian_filter1d(np.sum(np.abs(diff), axis=1), sigma=sigma)) + \
            w2 * np.sum(gaussian_filter1d(np.sum(diff**2, axis=1), sigma=sigma))
 
+# Discrepancy Score 2: Kernel-based Maximum Mean Discrepancy
 def discrepancy_score2(real_obs, sim_obs, gamma=0.5):
     X, Y = np.vstack(real_obs), np.vstack(sim_obs)
     return np.mean(rbf_kernel(X, X, gamma=gamma)) + \
            np.mean(rbf_kernel(Y, Y, gamma=gamma)) - \
            2 * np.mean(rbf_kernel(X, Y, gamma=gamma))
 
+# Discrepancy Score 3: Mean Wasserstein distance across all observation dimensions
 def discrepancy_score3(real_obs, sim_obs):
     X, Y = np.vstack(real_obs), np.vstack(sim_obs)
     return np.mean([wasserstein_distance(X[:, d], Y[:, d]) for d in range(X.shape[1])])
 
+# Collect full observation trajectories from the environment
 def rollout_episodes(env, model, episodes=50):
     collected = []
     for _ in range(episodes):
@@ -48,6 +54,7 @@ def rollout_episodes(env, model, episodes=50):
         collected.append(np.concatenate(temp))
     return collected
 
+# Align trajectory lengths and compute the selected discrepancy
 def compute_discrepancy(real_obs, sim_obs, method):
     min_len = min(min(len(o) for o in real_obs), min(len(o) for o in sim_obs))
     real_obs = [o[:min_len] for o in real_obs]
@@ -62,31 +69,42 @@ def compute_discrepancy(real_obs, sim_obs, method):
     else:
         raise ValueError("Invalid discrepancy method selected.")
 
+# SimOpt optimization loop
 def simopt_loop(mu_vars, discrepancy_method):
     tol = 1e-3
+    # Create environment and retrieve the root (torso) mass
     env_template = make_env("CustomHopper-source-v0", SEED)
     root_mass = env_template.sim.model.body_mass[1]      
     env_template.close()
 
+    # Repeat until all variances in the mass distribution are below the threshold
     while all(var[1] > tol for var in mu_vars):
+        # 1) Sample a new set of dynamic masses (thigh, leg, foot) from current mean and variance
         masses3 = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]   # thigh, leg, foot
         masses4 = np.concatenate([[root_mass], masses3])               # prepend torso
+
+        # 2) Create a simulated environment with the new body parameters and train PPO agent
         env_sim  = make_env("CustomHopper-source-v0", SEED)
         env_sim.set_parameters(masses4)
+        
         model = PPO("MlpPolicy", env_sim,
                     learning_rate=3e-4, gamma=0.99,
                     verbose=0, seed=SEED, device=args.device)
         model.learn(total_timesteps=10000)
 
+        # 3) Create the "real" environment with the same parameters (sim-to-real simulation)
         env_real = make_env("CustomHopper-target-v0", SEED)
         env_real.set_parameters(masses4)
 
+        # Run rollouts in both simulated and real environments using the trained model
         real_obs = rollout_episodes(env_real, model)
         sim_obs = rollout_episodes(env_sim, model)
 
+        # 4) Compute discrepancy between trajectories from simulation and real environments
         discrepancy = compute_discrepancy(real_obs, sim_obs, discrepancy_method)
         print(f"Discrepancy ({discrepancy_method}):", discrepancy)
 
+        # 5) Define parameter space for the optimization
         param = ng.p.Dict(**{
             f"x{i+1}": ng.p.Scalar(init=mu_vars[i][0]).set_mutation(sigma=mu_vars[i][1])
             for i in range(3)
@@ -95,50 +113,48 @@ def simopt_loop(mu_vars, discrepancy_method):
         # set the seed on the underlying Instrumentation RNG
         optimizer.parametrization.random_state.seed(SEED)
 
+        # Feed the optimizer with current discrepancy score
         for _ in range(optimizer.budget):
             x = optimizer.ask()
             optimizer.tell(x, discrepancy)
 
+        # 6) Retrieve best suggestion from optimizer
         rec = optimizer.recommend()
         print("Recommended:", rec.value)
 
+        # Update mu/var estimates by fitting new distribution to sampled values + recommended ones
         for i, k in enumerate(['x1', 'x2', 'x3']):
             samples = np.append(np.random.normal(mu_vars[i][0], mu_vars[i][1], 300), rec.value[k])
             mu_vars[i][0], mu_vars[i][1] = np.mean(samples), np.var(samples)
 
         print("Updated mu/var:", mu_vars)
 
-    return mu_vars, root_mass
+    return mu_vars, root_mass #optimized distribution parameters and torso mass
 
+# Final training phase using optimized mass parameters
 def final_training(mu_vars, root_mass, total_steps):
+    # Sample final body masses from optimized distribution
     masses3 = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]
     masses4 = np.concatenate([[root_mass], masses3])
+
+    # Set up training environment with final parameters
     env_train = make_env("CustomHopper-source-v0", SEED)
     env_train.set_parameters(masses4)
     env_train = Monitor(env_train)
-    
+
+    # Initialize PPO model
     model = PPO("MlpPolicy", env_train,
                 learning_rate=3e-4, gamma=0.99,
                 verbose=1, seed=SEED, device=args.device)
+    
+    # Train 
+    model.learn(total_timesteps=total_steps)
 
+    # Evaluate final policy on target environment
     env_eval  = Monitor(make_env("CustomHopper-target-v0", SEED))
-    log = []
-
-    steps_done = 0
-    mean_training = np.nan
-    while steps_done < total_steps:
-        steps_to_do = min(1000, total_steps - steps_done)
-        model.learn(total_timesteps=steps_to_do, reset_num_timesteps=False)
-        steps_done += steps_to_do
-        train_rewards = env_train.get_episode_rewards()
-        if len(train_rewards) >= 10:
-            mean_training = np.mean(train_rewards[-10:])
-            print(f"Mean training reward (last 10 episodes): {mean_training:.2f}")
-        avg_eval, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
-        #print(f"[{step}] Evaluation on target: {avg_eval:.2f}")
-        log.append(["Train (source)", steps_done, mean_training])
-        log.append(["Eval (target)", steps_done, avg_eval])
-
+    avg_eval, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
+    
+    # Prepare logging
     env_type = ("source" if "source" in env_train.unwrapped.spec.id.lower()
                          else "target")
     tag = f"ppo_tuned_{env_type}_seed_{SEED}_simopt_{args.discrepancy}"
