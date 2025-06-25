@@ -160,7 +160,7 @@ def simopt_loop(mu_vars, discrepancy_method, optimizer_name):
 
         # Select optimizer
         if optimizer_name == "cma":
-            optimizer = ng.optimizers.CMA(parametrization=param, budget=5)
+            optimizer = ng.optimizers.CMA(parametrization=param, budget=2)
         elif optimizer_name == "pso":
             optimizer = ng.optimizers.PSO(parametrization=param, budget=5)
         elif optimizer_name == "de":
@@ -215,6 +215,7 @@ def simopt_loop(mu_vars, discrepancy_method, optimizer_name):
 
 # Final training phase using optimized mass parameters
 def final_training(mu_vars, root_mass, total_steps):
+    print("Starting final training")
     # Sample final body masses from optimized distribution
     masses3 = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]
     masses4 = np.concatenate([[root_mass], masses3])
@@ -237,6 +238,8 @@ def final_training(mu_vars, root_mass, total_steps):
     avg_eval, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
     train_rewards = env_train.get_episode_rewards()
     mean_training = np.mean(train_rewards[-10:]) if len(train_rewards) >= 10 else np.mean(train_rewards)
+    print("mean training and avg eval are:")
+    print(mean_training, avg_eval)
     log = [
         ["Train (source)", total_steps, mean_training],
         ["Eval (target)", total_steps, avg_eval]
