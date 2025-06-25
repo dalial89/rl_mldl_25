@@ -100,9 +100,9 @@ def simopt_loop(mu_vars, discrepancy_method):
 
         print("Updated mu/var:", mu_vars)
 
-    return mu_vars
+    return mu_vars, root_mass
 
-def final_training(mu_vars, total_steps):
+def final_training(mu_vars, root_mass, total_steps):
     masses3 = [np.random.normal(mu[0], mu[1]) for mu in mu_vars]
     masses4 = np.concatenate([[root_mass], masses3])
     env_train = gym.make('CustomHopper-source-v0')
@@ -166,8 +166,8 @@ def main():
     torch.manual_seed(SEED)
 
     mu_init = [[3.92699082, 0.5], [2.71433605, 0.5], [5.0893801, 0.5]]
-    mu_final = simopt_loop(mu_init, args.discrepancy)
-    final_training(mu_final, args.final_steps)
+    mu_final, root_mass = simopt_loop(mu_init, args.discrepancy)
+    final_training(mu_final,root_mass, args.final_steps)
 
 if __name__ == '__main__':
     main()
