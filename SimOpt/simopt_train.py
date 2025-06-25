@@ -127,7 +127,6 @@ def simopt_loop(mu_vars, discrepancy_method):
 
         print("Updated mu/var:", mu_vars)
 
-    return mu_vars, root_mass
     return mu_vars, root_mass #optimized distribution parameters and torso mass
 
 # Final training phase using optimized mass parameters
@@ -152,23 +151,6 @@ def final_training(mu_vars, root_mass, total_steps):
 
     # Evaluate final policy on target environment
     env_eval  = Monitor(make_env("CustomHopper-target-v0", SEED))
-    log = []
-
-    steps_done = 0
-    mean_training = np.nan
-    while steps_done < total_steps:
-        steps_to_do = min(1000, total_steps - steps_done)
-        model.learn(total_timesteps=steps_to_do, reset_num_timesteps=False)
-        steps_done += steps_to_do
-        train_rewards = env_train.get_episode_rewards()
-        if len(train_rewards) >= 10:
-            mean_training = np.mean(train_rewards[-10:])
-            print(f"Mean training reward (last 10 episodes): {mean_training:.2f}")
-        avg_eval, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
-        #print(f"[{step}] Evaluation on target: {avg_eval:.2f}")
-        log.append(["Train (source)", steps_done, mean_training])
-        log.append(["Eval (target)", steps_done, avg_eval])
-
     avg_eval, _ = evaluate_policy(model, env_eval, n_eval_episodes=50)
 
     # Prepare logging
