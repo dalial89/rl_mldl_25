@@ -68,7 +68,7 @@ def compute_discrepancy(real_obs, sim_obs, method):
         raise ValueError("Invalid discrepancy method selected.")
 
 # SimOpt optimization loop
-def simopt_loop(mu_vars, discrepancy_method):
+def simopt_loop(mu_vars, discrepancy_method, optimizer_name):
     tol = 1e-3
     # Create environment and retrieve the root (torso) mass
     env_template = make_env("CustomHopper-source-v0", SEED)
@@ -107,7 +107,16 @@ def simopt_loop(mu_vars, discrepancy_method):
             f"x{i+1}": ng.p.Scalar(init=mu_vars[i][0]).set_mutation(sigma=mu_vars[i][1])
             for i in range(3)
         })
-        optimizer = ng.optimizers.CMA(parametrization=param, budget=1300)
+        # Select optimizer based on args.optimizer
+        if optimizer_name == "cma":
+            optimizer = ng.optimizers.CMA(parametrization=param, budget=1300)
+        elif optimizer_name == "pso":
+            optimizer = ng.optimizers.PSO(parametrization=param, budget=1300)
+        elif optimizer_name == "de":
+            optimizer = ng.optimizers.DE(parametrization=param, budget=1300)
+        else:
+            raise ValueError(f"Unsupported optimizer: {optimizer_name}")
+            
         # set the seed on the underlying Instrumentation RNG
         optimizer.parametrization.random_state.seed(SEED)
 
@@ -182,6 +191,7 @@ def main():
     parser.add_argument("--final_steps", type=int, default=100000, help="Total training steps for final training")
     parser.add_argument("--seed", type=int, default=42, help="Random seed (forwarded by main.py)")
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu", help="Torch device")
+    parser.add_argument("--optimizer", choices=["cma", "pso", "de"], default="cma", help="Optimization algorithm to use")
     global args          
     args = parser.parse_args()
     global SEED
@@ -190,7 +200,7 @@ def main():
     np.random.seed(SEED)
     torch.manual_seed(SEED)
     mu_init = [[3.92699082, 0.5], [2.71433605, 0.5], [5.0893801, 0.5]]
-    mu_final, root_mass = simopt_loop(mu_init, args.discrepancy)
+    mu_final, root_mass = simopt_loop(mu_init, args.discrepancy, args.optimizer)
     final_training(mu_final,root_mass, args.final_steps)
 
 if __name__ == '__main__':
